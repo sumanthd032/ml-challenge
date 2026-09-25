@@ -23,6 +23,7 @@ from data import load_split, load_gt_pairs
 from decide import expected_f_select
 from features import compute_features, build_idf, FEAT_NAMES
 from metrics import macro_f05, blocking_recall
+from candidates import merge_candidates
 
 DROP = {"s1_id", "cand_id", "label"}
 
@@ -31,19 +32,17 @@ def feature_columns(df):
     return [c for c in df.columns if c not in DROP]
 
 
-def make_feature_table(cands_file: str, ghost_frac: float, max_s1: int, tag: str):
+def make_feature_table(max_fit: int, tag: str):
     s1, s23 = load_split("train")
-    cands = pd.read_parquet(config.ART_DIR / cands_file)
-    ids = np.array(sorted(cands.s1_id.unique()))
-    rng = np.random.default_rng(config.SEED)
-    rng.shuffle(ids)
-    n_ghost = int(len(ids) * ghost_frac)
-    ghost = set(ids[:n_ghost])
-    keep = ids[n_ghost:]
-    if max_s1 and len(keep) > max_s1:
-        keep = keep[:max_s1]
+    role = s1.entity_id.map(config.s1_role)
+    fit_ids = s1.entity_id[role == "fit"].sample(frac=1, random_state=config.SEED)
+    if max_fit and len(fit_ids) > max_fit:
+        fit_ids = fit_ids[:max_fit]
+    keep = np.concatenate([fit_ids.values, s1.entity_id[role == "valid"].values])
+    cands = merge_candidates("train", s1, s23)
+    # ghost S1s are removed from the pool: their candidates vanish, their S2/S3 remain distractors
     cands = cands[cands.s1_id.isin(set(keep))].reset_index(drop=True)
-    print(f"S1 kept {len(keep):,} (ghost {len(ghost):,}); pairs {len(cands):,}", flush=True)
+    print(f"S1 kept {len(keep):,} (ghost {int((role == 'ghost').sum()):,}); pairs {len(cands):,}", flush=True)
     t = time.time()
     idf = build_idf(s1, s23)
     feats = compute_features(cands, s1, s23, idf)
@@ -59,11 +58,9 @@ def make_feature_table(cands_file: str, ghost_frac: float, max_s1: int, tag: str
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--cands", default="train_cands_A.parquet")
     ap.add_argument("--tag", default="v1")
-    ap.add_argument("--ghost-frac", type=float, default=0.2)
-    ap.add_argument("--max-s1", type=int, default=0)
-    ap.add_argument("--valid-frac", type=float, default=0.2)
+    ap.add_argument("--max-fit", type=int, default=0, help="cap on fit S1s (0 = all)")
+    ap.add_argument("--max-train-rows", type=int, default=40_000_000)
     ap.add_argument("--reuse", action="store_true")
     args = ap.parse_args()
 
@@ -71,19 +68,20 @@ def main():
         feats = pd.read_parquet(config.ART_DIR / f"feats_{args.tag}.parquet")
         keep = pd.read_csv(config.ART_DIR / f"s1_keep_{args.tag}.csv").iloc[:, 0].values
     else:
-        feats, keep = make_feature_table(args.cands, args.ghost_frac, args.max_s1, args.tag)
-    keep = np.array(sorted(keep))
-    rng = np.random.default_rng(config.SEED + 1)
-    va_ids = set(rng.choice(keep, int(len(keep) * args.valid_frac), replace=False))
+        feats, keep = make_feature_table(args.max_fit, args.tag)
+    va_ids = {x for x in keep if config.s1_role(x) == "valid"}
     is_va = feats.s1_id.isin(va_ids).values
+    tr_idx = np.flatnonzero(~is_va)
+    if len(tr_idx) > args.max_train_rows:
+        tr_idx = np.sort(np.random.default_rng(config.SEED).choice(tr_idx, args.max_train_rows, replace=False))
     cols = feature_columns(feats)
-    print(f"{len(cols)} features; train pairs {(~is_va).sum():,} valid pairs {is_va.sum():,}; "
+    print(f"{len(cols)} features; train pairs {len(tr_idx):,} valid pairs {is_va.sum():,}; "
           f"pos rate {feats.label.mean():.3f}", flush=True)
 
     params = dict(objective="binary", learning_rate=0.05, num_leaves=255, min_data_in_leaf=100,
                   feature_fraction=0.8, bagging_fraction=0.8, bagging_freq=1, lambda_l2=1.0,
                   num_threads=config.N_JOBS, verbose=-1, seed=config.SEED)
-    dtr = lgb.Dataset(feats.loc[~is_va, cols], feats.label[~is_va])
+    dtr = lgb.Dataset(feats.loc[tr_idx, cols], feats.label.values[tr_idx])
     dva = lgb.Dataset(feats.loc[is_va, cols], feats.label[is_va], reference=dtr)
     t = time.time()
     model = lgb.train(params, dtr, num_boost_round=3000, valid_sets=[dva],

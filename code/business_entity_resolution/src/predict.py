@@ -14,6 +14,7 @@ import config
 from data import load_split
 from decide import expected_f_select
 from features import compute_features, build_idf
+from candidates import merge_candidates
 
 
 def write_lists(pairs: pd.DataFrame, s1_ids, col: str, path):
@@ -31,7 +32,6 @@ def write_lists(pairs: pd.DataFrame, s1_ids, col: str, path):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--model", default="lgb_v1.txt")
-    ap.add_argument("--cands", default="test_cands_A.parquet")
     ap.add_argument("--alpha", type=float, default=1.0)
     ap.add_argument("--min-p", type=float, default=0.05)
     ap.add_argument("--reuse-feats", action="store_true")
@@ -42,7 +42,7 @@ def main():
     if args.reuse_feats:
         feats = pd.read_parquet(feats_path)
     else:
-        cands = pd.read_parquet(config.ART_DIR / args.cands)
+        cands = merge_candidates("test", s1, s23)
         feats = compute_features(cands, s1, s23, build_idf(s1, s23))
         feats.to_parquet(feats_path, index=False)
     print(f"features for {len(feats):,} pairs ({time.time() - t:.0f}s)", flush=True)

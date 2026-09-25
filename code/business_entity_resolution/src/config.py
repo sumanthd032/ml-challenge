@@ -14,6 +14,21 @@ N_JOBS = int(os.environ.get("BER_JOBS", max(1, (os.cpu_count() or 4) - 4)))
 SEED = 42
 
 
+GHOST_FRAC = 0.2      # train S1s removed from the pool (distractor simulation) & used to fine-tune the bi-encoder
+VALID_FRAC = 0.2      # of the remaining train S1s, used for validation
+
+
+def s1_role(entity_id: str) -> str:
+    """Deterministic role of a TRAIN S1 entity: 'ghost' | 'valid' | 'fit' (hash-based, reproducible)."""
+    import hashlib
+    h = int(hashlib.md5(entity_id.encode()).hexdigest()[:8], 16) / 0xFFFFFFFF
+    if h < GHOST_FRAC:
+        return "ghost"
+    if h < GHOST_FRAC + (1 - GHOST_FRAC) * VALID_FRAC:
+        return "valid"
+    return "fit"
+
+
 def source_path(split: str, s: int) -> Path:
     return DATA_DIR / split / f"{split}_source{s}.tsv"
 
