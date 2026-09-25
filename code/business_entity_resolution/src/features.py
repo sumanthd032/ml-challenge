@@ -134,27 +134,32 @@ def pair_features(pool: Pool, ia, ib, colsA, colsB, step=20000) -> np.ndarray:
     return np.vstack(pool.map(_chunk, jobs, chunksize=1))
 
 
-# pairwise features read by add_group_features (besides blk_score / emb_cos from the pairs table)
+# pairwise features read by add_pair_sim / add_key_features (besides blk_score / emb_cos from the pairs table)
 GROUP_INPUTS = ["n_tset", "cc_jw", "a_tset", "num_jacc"]
 
 
-def add_group_features(df: pd.DataFrame) -> None:
-    """Competition features: how this pair compares with other pairs of the same S1 / same candidate."""
+def add_pair_sim(df: pd.DataFrame) -> None:
     df["pair_sim"] = ((df.n_tset + df.cc_jw) / 2 + np.where(df.a_tset >= 0, df.a_tset, 50) +
                       np.where(df.num_jacc >= 0, df.num_jacc * 100, 30)).astype(np.float32)
+
+
+def add_key_features(df: pd.DataFrame, key: str) -> None:
+    """Competition features: how this pair compares with the other pairs of the same S1 (key "i1", prefix
+    s1_) or the same candidate (key "i2", prefix cd_). Needs pair_sim. Only uses rows of the same key, so
+    df may be any subset that holds whole groups."""
+    tag = {"i1": "s1", "i2": "cd"}[key]
     extra = [c for c in ("emb_cos",) if c in df]
-    for key, tag in (("i1", "s1"), ("i2", "cd")):
-        g = df.groupby(key, sort=False)
-        df[f"{tag}_n"] = g[key].transform("size").astype(np.int16)
-        for col in ["pair_sim", "blk_score", "n_tset", "a_tset"] + extra:
-            mx = g[col].transform("max")
-            df[f"{tag}_{col}_gap"] = (df[col] - mx).astype(np.float32)
-            df[f"{tag}_{col}_rank"] = g[col].rank(ascending=False, method="min").astype(np.float32)
-    # second-best gap for candidate: margin of this pair over the best *other* S1
-    df["cd_pair_sim_2nd_gap"] = _gap_to_best_other(df, "i2", "pair_sim")
-    df["s1_pair_sim_2nd_gap"] = _gap_to_best_other(df, "i1", "pair_sim")
-    for c in extra:
-        df[f"cd_{c}_2nd_gap"] = _gap_to_best_other(df, "i2", c)
+    g = df.groupby(key, sort=False)
+    df[f"{tag}_n"] = g[key].transform("size").astype(np.int16)
+    for col in ["pair_sim", "blk_score", "n_tset", "a_tset"] + extra:
+        mx = g[col].transform("max")
+        df[f"{tag}_{col}_gap"] = (df[col] - mx).astype(np.float32)
+        df[f"{tag}_{col}_rank"] = g[col].rank(ascending=False, method="min").astype(np.float32)
+    # second-best gap: margin of this pair over the best *other* partner
+    df[f"{tag}_pair_sim_2nd_gap"] = _gap_to_best_other(df, key, "pair_sim")
+    if key == "i2":
+        for c in extra:
+            df[f"cd_{c}_2nd_gap"] = _gap_to_best_other(df, key, c)
 
 
 def _gap_to_best_other(df, key, col):
