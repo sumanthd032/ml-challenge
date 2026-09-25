@@ -3,7 +3,9 @@
 Features come from the resumable store (store.py): re-running after a crash continues where it stopped.
 
 Usage: python predict.py --model lgb_v1.txt [--thr 0.7 | --alpha 1.0 --min-p 0.05]
-Writes OUT_DIR/matching_results.tsv and OUT_DIR/candidate_pairs.tsv.
+       python predict.py --scores test_scores2_v1.parquet --thr 0.7   (decide from saved scores, e.g. stage 2)
+Writes OUT_DIR/matching_results.tsv and OUT_DIR/candidate_pairs.tsv. With --scores the candidate set is
+unchanged, so candidate_pairs.tsv is only written if it is missing (it is a 2 GB, memory-heavy write).
 """
 import argparse
 import json
@@ -40,9 +42,34 @@ def main():
     ap.add_argument("--min-p", type=float, default=0.05)
     ap.add_argument("--thr", type=float, default=None,
                     help="flat probability threshold instead of expected-F0.5 selection")
+    ap.add_argument("--scores", default=None, help="saved test score parquet in FEAT_DIR (skips features/model)")
+    ap.add_argument("--out", default="matching_results.tsv")
     args = ap.parse_args()
     t = time.time()
     s1, s23 = load_split("test")
+    if args.scores:
+        scored = pd.read_parquet(config.FEAT_DIR / args.scores)
+    else:
+        scored = score_test(args, s1, s23, t)
+    if args.thr is not None:
+        sel = expected_f_select(scored, mode="thr", thr=args.thr, alpha=1.0)
+    else:
+        sel = expected_f_select(scored, alpha=args.alpha, min_p=args.min_p)
+    if not args.scores or not (config.OUT_DIR / "candidate_pairs.tsv").exists():
+        write_lists(scored.s1_id.values, scored.cand_id.values, s1, s23, "candidate_entity_ids",
+                    config.OUT_DIR / "candidate_pairs.tsv")
+    del scored
+    res = write_lists(sel.s1_id.values, sel.cand_id.values, s1, s23, "matched_entity_ids", config.OUT_DIR / args.out)
+    n = (res.matched_entity_ids != "").sum()
+    country = s1.country.values[sel.s1_id.values]
+    stats = {"s1": len(res), "with_match": int(n), "pred_pairs": len(sel), "pairs_per_s1": len(sel) / len(res),
+             "pred_pairs_by_country": {k: int(v) for k, v in pd.Series(country).value_counts().items()},
+             "s1_by_country": {k: int(v) for k, v in s1.country.value_counts().items()}}
+    print(json.dumps(stats, indent=1))
+    print(f"done in {time.time() - t:.0f}s")
+
+
+def score_test(args, s1, s23, t):
     pairs = store.build("test", s1, s23)
     print(f"features for {len(pairs):,} pairs ({time.time() - t:.0f}s)", flush=True)
     model = lgb.Booster(model_file=str(config.ART_DIR / args.model))
@@ -55,22 +82,7 @@ def main():
     del X
     scored = pd.DataFrame({"s1_id": pairs.i1.values, "cand_id": pairs.i2.values, "p": p})
     scored.to_parquet(config.FEAT_DIR / f"test_scores_{args.model.removesuffix('.txt')}.parquet", index=False)
-    del pairs
-    if args.thr is not None:
-        sel = expected_f_select(scored, mode="thr", thr=args.thr, alpha=1.0)
-    else:
-        sel = expected_f_select(scored, alpha=args.alpha, min_p=args.min_p)
-    write_lists(scored.s1_id.values, scored.cand_id.values, s1, s23, "candidate_entity_ids",
-                config.OUT_DIR / "candidate_pairs.tsv")
-    res = write_lists(sel.s1_id.values, sel.cand_id.values, s1, s23, "matched_entity_ids",
-                      config.OUT_DIR / "matching_results.tsv")
-    n = (res.matched_entity_ids != "").sum()
-    country = s1.country.values[sel.s1_id.values]
-    stats = {"s1": len(res), "with_match": int(n), "pred_pairs": len(sel), "pairs_per_s1": len(sel) / len(res),
-             "pred_pairs_by_country": {k: int(v) for k, v in pd.Series(country).value_counts().items()},
-             "s1_by_country": {k: int(v) for k, v in s1.country.value_counts().items()}}
-    print(json.dumps(stats, indent=1))
-    print(f"done in {time.time() - t:.0f}s")
+    return scored
 
 
 if __name__ == "__main__":
