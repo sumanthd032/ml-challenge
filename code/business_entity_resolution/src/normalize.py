@@ -68,6 +68,7 @@ LEGAL_CANON = {
     "ei": "ei", "selarl": "selarl", "scp": "scp", "scm": "scm", "sca": "sca", "gie": "gie",
     "ets": "etablissements", "etablissements": "etablissements", "tbk": "tbk", "opc": "opc",
     "holdings": "holdings", "group": "group", "groupe": "group",
+    "praivet": "private", "piraivet": "private", "praibhet": "private", "privet": "private", "limitet": "limited",
 }
 # tokens that carry no identity (removed in the "core" name)
 LEGAL_TOKENS = {"private", "limited", "inc", "corp", "co", "llc", "llp", "lp", "plc", "pllc", "pc", "pa",
@@ -88,11 +89,36 @@ _NAME_JUNK = [
 ]
 
 
+def _load_indic_dict() -> dict:
+    """Native-token -> English dictionary learned from train pairs (learn_dict.py); empty if absent."""
+    import json
+    import os
+    from pathlib import Path
+    p = Path(os.environ.get("BER_ARTIFACTS", Path(__file__).resolve().parents[3] / "artifacts")) / "indic_dict.json"
+    if p.exists():
+        return json.load(open(p, encoding="utf-8"))
+    return {}
+
+
+INDIC_DICT = _load_indic_dict()
+
+
+def map_indic(s: str) -> str:
+    """Replace native-script words by their learned English translation, else rule-transliterate."""
+    out = []
+    for w in _NON_WORD.sub(" ", s).split():
+        if has_indic(w):
+            out.append(INDIC_DICT.get(w) or translit(w))
+        else:
+            out.append(w)
+    return " ".join(out)
+
+
 def _name_tokens(s: str) -> list:
     for pat, rep in _NAME_JUNK:
         s = pat.sub(rep, s)
     if has_indic(s):
-        s = translit(s)
+        s = map_indic(s)
     toks = [fix_leet(t) for t in _NON_WORD.sub(" ", s).replace("_", " ").split()]
     return [LEGAL_CANON.get(t, t) for t in toks]
 

@@ -1,0 +1,208 @@
+missed 36444 of 760713
+
+S1: Environmental Association | 2731 Pioneer Drive, Unit 103, Irving, TX
+    core=environmental association toks=pioneer dr irving nums=2731 103
+S2: Environmental Asssciatnion | 
+    core=environmental asssciatnion toks= nums=
+
+S1: Balaji Consultants Private Limited | No.1, Orchid Woods, 1A Cross, Kundalahalli, Bangalore, Karnataka
+    core=balaji consultants toks=orchid woods cross kundalahalli bangalore nums=1 1
+S3: ಬಾಲಾಜಿ ಕನ್ಸಲ್ಟೆಂಟ್ಸ್ ಪ್ರೈವೇಟ್ ಲಿಮಿಟೆಡ್ | No.1, Bangalore, KA
+    core=balaji kansaltents praivet toks=bangalore nums=1
+
+S1: Arihant Shiva Business Private Limited | P. No. 1, S. No. 275/2-B, Chandan Nagar, Kodoli Midc, Satara, Maharashtra
+    core=arihant shiva business toks=chandan ngr kodoli midc satara nums=1 275 2
+S2: अरिहंत शिवा बिजनेस प्राइवेट लिमिटेड | HN 510 P. NO. 1, SATARA, Maharashtra
+    core=arihant shiva bijanes praivet toks=hn satara nums=510 1
+
+S1: Creative Tech Private Limited | Kh No - 83/16, Gf, Ssi Phirni Road Industrial Area, Mundka, Delhi, West Delhi, Delhi
+    core=creative tech toks=kh ssi phirni rd industrial area mundka nums=83 16
+S2: क्रिएटिव टेक प्राइवेट लिमिटेड | KH NO - 83/16, DELHI, WEST DELHI, Delhi
+    core=krietiv tek praivet toks=kh nums=83 16
+
+S1: Green Services | C/106, Ritu Paradise Chs, Ltd Phase 1, Thane, Maharashtra
+    core=green services toks=ritu paradise chs ltd thane nums=106 1
+S2: Smt Xylozepharia | C/106, THANE, Maharashtra
+    core=xylozepharia toks=thane nums=106
+
+S1: Le Research (India) Private Limited | J-4/72, 3 Floor, Khirki Extension, Malviya Nagar, New Delhi, Delhi
+    core=research toks=khirki extension malviya ngr new nums=4 72 3
+S2: leresearchindia.com | J-2/72, MALVIYA NAGAR, NEW DELHI, दिल्ली
+    core=leresearchindia toks=malviya ngr new nums=2 72
+
+S1: First Technologies Private Limited | 3Rd Floor Room No 3E, 226/1 A J C Bose Road, Kolkata, Kolkata, Howrah, West Bengal
+    core=first technologies toks=3rd bose rd kolkata kolkata howrah nums=3 3 226 1
+S2: ফার্স্ট টেকনোলজিস প্রাইভেট লিমিটেড | DOOR NO A-3RD FLOOR ROOM NO 3E, CALCUTTA, HOWRAH, West Bengal
+    core=farst tekanolajis praibhet toks=3rd kolkata howrah nums=3 3
+
+S1: Internal Medicine Partners | Village Of Allouez, WI, 326 Bryan Street
+    core=internal medicine partners toks=allouez wi bryan st nums=326
+S3: Internal Partners Medicine | Bryan St, Green BA Ycity, Wisconsin
+    core=internal partners medicine toks=bryan st green ba ycity nums=
+
+S1: Universal Impex Pvt Ltd | P-35 K-144S, Dhawa, Lucknow, Uttar Pradesh
+    core=universal impex toks=dhawa lucknow nums=35 144
+S2: Universal Impex-Pvt  Ltd | 
+    core=universal impex toks= nums=
+
+S1: Krishna Constructions Limited | Office No.3, The Origin, 7/A/Ii/Npv, Palam Vihar, Palam Vihar, Gurgaon, Haryana
+    core=krishna constructions toks=origin ii npv palam vihar palam vihar gurgaon nums=3 7
+S3: Krishna  Constructions | Office No.3, Palam Vihar, Gurgaon, HR
+    core=krishna constructions toks=palam vihar gurgaon nums=3
+
+S1: Global Global Private Limited | H.No. 6-3-678/101, Hyderabad, Flat B-101 Pasha Court, Punjagutta, Telangana, Hyderabad
+    core=global global toks=hyderabad pasha ct punjagutta hyderabad nums=6 3 678 101 101
+S3: Global Global Pivhte (Limited) | 
+    core=global global pivhte toks= nums=
+
+S1: Real Foods Private Limited | Shop No-3, Property No Wz-92-A Krishna Puri, Delhi, West Delhi, Delhi
+    core=real foods toks=property wz krishna puri nums=3 92
+S3: रियल फूड्स प्राइवेट लिमिटेड | 323 Shop No-3, West, West Delhi, DL
+    core=riyal fuds praivet toks= nums=323 3
+
+S1: Surgical Center | 10113 52nd Drive, Marysville, WA
+    core=surgical center toks=52nd dr marysville nums=10113 52
+S2: Surgical-Center Enterprises | 
+    core=surgical center enterprises toks= nums=
+
+S1: One Constructions Private Limited | 6A, J.P.Tower, 7/2, Nungambakkam High Road, 7/2, Nungambakkam High Road, Chennai - 600 034., Tamil Nadu
+    core=one constructions toks=nungambakkam high rd nungambakkam high rd chennai nums=6 7 2 7 2 600 34
+S2: ஒன் கன்ஸ்ட்ரக்ஷன்ஸ் பிரைவேட் லிமிடெட் | 6A, J.P.TOWER, 7/2, NUNGAMBAKKAM HIGH ROAD, 7/2, NUNGAMBAKKAM HIGH ROAD, CHENNAI - 600 034., Tamil Nadu
+    core=on kanstrakshans piraivet limitet toks=nungambakkam high rd nungambakkam high rd chennai nums=6 7 2 7 2 600 34
+
+S1: SV Smart Aura LLC | 101 Poplar Street, Murray, KY
+    core=sv smart aura toks=poplar st murray nums=101
+S2: 5V Smart Aruera LLC | 101-105 POPLAR ST, MURRAY, KY
+    core=5v smart aruera toks=poplar st murray nums=101 105
+
+S1: Integrated Concord | 1202 12th Avenue, Scottsbluff, NE
+    core=integrated concord toks=12th ave scottsbluff nums=1202 12
+S2: ICONCORD.COM | 1202 TWELFTH AVENUE, SCOTTSBLUFFCDP, NE
+    core=iconcord toks=twelfth ave scottsbluffcdp nums=1202
+
+S1: Cascade Group | Thousand Oaks, CA, 726 Flaming Star Avenue
+    core=cascade group toks=thousand oaks ca flaming star ave nums=726
+S2: Cascade Group Services | 
+    core=cascade group services toks= nums=
+
+S1: Hitech Estate Private Limited | Chengai Mgr Dist, Vengal Village, Tiruvallur Taluk, Tamil Nadu
+    core=hitech estate toks=chengai mgr vengal tiruvallur taluk nums=
+S2: M/s Hitech Egtate Private Limited | 
+    core=hitech egtate toks= nums=
+
+S1: Pinnacle Brand | 101 131 Street, NY, New York
+    core=pinnacle brand toks=st nums=101 131
+S2: Pinnacle-Center | #101 131 ST, NEW YORK, NY
+    core=pinnacle center toks=st nums=101 131
+
+S1: Black It Limited | Unit 715, The Summit Business Park, Andheri Kurla Road, Gundavali, Andheri (East), Mumbai, Maharashtra
+    core=black it toks=summit business park andheri kurla rd gundavali andheri mumbai nums=715
+S3: ब्लैक आईटी लिमिटेड | Unit G-715, Mumbai, MH
+    core=blaik aiti toks=mumbai nums=715
+
+S1: Chennai City Corporation Papers Private Limited | No.13, Sai Nagar, 2Nd Main Road, Chennai City Corporation, Chennai, Tamil Nadu
+    core=chennai city papers toks=sai ngr 2nd main rd chennai corporation chennai nums=13 2
+S3: Chennai City Corporation Pesrps Private Limited | H.no 13, Sai Nagar, 2Nd Main Road, Chennai City Corporation, Chennai, TN
+    core=chennai city pesrps toks=sai ngr 2nd main rd chennai corporation chennai nums=13 2
+
+S1: Food & Co | Shop No. 11, Pareekh Apartment, Raheja Township, Malad (East), Mumbai, Mumbai City, Maharashtra
+    core=food toks=pareekh raheja twp malad mumbai mumbai nums=11
+S2: Flod & Co | SHOP NO. 11, MUMBAI CITY, MUMBAI, महाराष्ट्र
+    core=flod toks=mumbai mumbai nums=11
+
+S1: Gold Hotel Management LLP | S 157 P 30 To 38, Giriraj, Vihar, E-16 Bijlinagar, Chinchwadgaon, Pune City, Pune, Maharashtra
+    core=gold hotel management toks=to giriraj vihar bijlinagar chinchwadgaon pune pune nums=157 30 38 16
+S3: Gold Hoetl Management LLP | S 157 P 30 To 38, Pune, MH
+    core=gold hoetl management toks=to pune nums=157 30 38
+
+S1: Dental Smart Associates | 1593 Eagle Valley Road, Union Twp, PA
+    core=dental smart associates toks=eagle valley rd union twp nums=1593
+S3: Denta1 Smart Associates Inc. | 
+    core=dental smart associates toks= nums=
+
+S1: Salt Lake City Children's Association | 714 900, Unit 305, Salt Lake City, UT
+    core=salt lake city childrens association toks=salt lake nums=714 900 305
+S2: CSLAKE.COM | 714 900, SALT LAKE CITY, UT
+    core=cslake toks=salt lake nums=714 900
+
+S1: Blue Software | Plot No -47, Shree Adi House 15Th Road, Chembur, Mumbai, Mumbai City, Office No -102, Maharashtra
+    core=blue software toks=shree adi 15th rd chembur mumbai mumbai nums=47 15 102
+S3: ब्लू सॉफ्टवेयर | Mumbai City, Mumbai, Office No -B3/102, MH
+    core=blu softaveyar toks=mumbai mumbai nums=3 102
+
+S1: Lula Milliron Bay Auto, LLC | 2015 43rd Street, Tacoma, WA
+    core=lula milliron bay auto toks=43rd st tacoma nums=2015 43
+S2: Arcnylamira | 43TH ST, TACOMA, WA
+    core=arcnylamira toks=43th st tacoma nums=43
+
+S1: Saum Express LLC | 1139 Tahoe Drive, Henry County, VA
+    core=saum express toks=tahoe dr henry co nums=1139
+S2: Saum LLC Services | 
+    core=saum services toks= nums=
+
+S1: Sunrise Global Private Limited | G-2, Krishna Complex Ganpati Enclave, Kolar Road, Bhopal, Madhya Pradesh
+    core=sunrise global toks=krishna complex ganpati enclave kolar rd bhopal nums=2
+S2: Sunrise Global Private | 
+    core=sunrise global toks= nums=
+
+S1: Coastal Center | 4914 Cayman Street, Sioux Falls, SD
+    core=coastal center toks=cayman st sioux falls nums=4914
+S2: Coastal Sérvice | 
+    core=coastal service toks= nums=
+
+S1: Sun Producer Private Limited | Office No. 308, 3F, A-43, Sector 63, Noida, Gautam Buddha Nagar, Uttar Pradesh
+    core=sun producer toks=sec noida gautam buddha ngr nums=308 3 43 63
+S2: M/s Jaxzeta | OFFICE NO. 308, GAUTAM BUDDHA NAGAR, Uttar Pradesh
+    core=jaxzeta toks=gautam buddha ngr nums=308
+
+S1: Womens Health Best Associates LLC | 768 Rosebud Highway, Amistad, NM
+    core=womens health best associates toks=rosebud hwy amistad nums=768
+S2: WOMENS HEALTH BEST ASSOCIATES Enterprises | 
+    core=womens health best associates enterprises toks= nums=
+
+S1: Heartland Alibaba Corp | 9 Hilltop Court, Unit Apartment E, Poughkeepsie, NY
+    core=heartland alibaba toks=hilltop ct poughkeepsie nums=9
+S3: Heartland Corp  Services | 9 Hilltop Court, # Apartment E, Poughkeepise, New York
+    core=heartland services toks=hilltop ct poughkeepise nums=9
+
+S1: Dynamic Solutions Limited | 8-3-191/601 Vengal Rao Nagar, Hyderabad, Telangana
+    core=dynamic solutions toks=vengal rao ngr hyderabad nums=8 3 191 601
+S3: Dynamic  Solutions | 
+    core=dynamic solutions toks= nums=
+
+S1: Division of Aging | Abington Township, PA, 501 Cedar Road
+    core=division aging toks=abington twp pa cedar rd nums=501
+S2: Fluxlum | CEDAR ROAD, ABINGTON TOWNSHIP, PA
+    core=fluxlum toks=cedar rd abington twp nums=
+
+S1: Optimal Investment Digital LLC | 6456 120th Street, Mccune, KS
+    core=optimal investment digital toks=120th st mccune nums=6456 120
+S3: Optimal Investment Digital Llc | 645 120th Street, MC CUNE, Kansas
+    core=optimal investment digital toks=120th st mc cune nums=645 120
+
+S1: Surgical Clinic | 81 Lake Road, Orneville Twp, ME
+    core=surgical clinic toks=lake rd orneville twp nums=81
+S3: Surgical  Cltantec | 81 Lake Rohd, MILO, Maine
+    core=surgical cltantec toks=lake rohd milo nums=81
+
+S1: Mountain Communities Inc | 1570 Duke Drive, Livingston, CA
+    core=mountain communities toks=duke dr livingston nums=1570
+S2: Mountain-Inc Communities Communities | 
+    core=mountain communities communities toks= nums=
+
+S1: Pediatric Health, Inc. | 1124 Oak Street, NE, Lincoln
+    core=pediatric health toks=oak st lincoln nums=1124
+S2: Pediatric Hethlt,h Inc. | 1122 OAK STREET, PMB 473, LINCOLN, NE
+    core=pediatric hethlt h toks=oak st lincoln nums=1122 473
+
+S1: My Estate Private Limited | Vallalarstreet, Jagathambigai Nagar, Padi, Madras., Madras., Tamil Nadu, 53, Chennai
+    core=my estate toks=vallalarstreet jagathambigai ngr padi chennai chennai chennai nums=53
+S3: மை எஸ்டேட் பிரைவேட் லிமிடெட் | Block F-723 53, Chennai, Madras., TN
+    core=mai estet piraivet limitet toks=chennai chennai nums=723 53
+
+missed: indic share 0.3031225990560861  empty-addr share 0.20799034134562616
+all:    indic share 0.07132650552836615  empty-addr share 0.044311060807426715
+miss rate by country: country
+India    0.066817
+US       0.035363
+Name: h, dtype: float64
