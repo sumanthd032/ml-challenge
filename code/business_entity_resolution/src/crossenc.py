@@ -87,7 +87,7 @@ def _batches(A, B, idx, tok, bs):
                      return_tensors="pt")
 
 
-def train(max_pairs, bs=256, lr=4e-5, eval_every=2000):
+def train(max_pairs, bs=256, lr=4e-5, eval_every=1000):
     s1, s23 = load_split("train")
     t1, t2 = record_text(s1), record_text(s23)
     tr = pd.read_parquet(config.FEAT_DIR / "ce_train_pairs.parquet")

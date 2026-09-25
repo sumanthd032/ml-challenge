@@ -14,6 +14,8 @@ Stage 2 is trained on the validation pairs, whose stage-1 scores are out-of-samp
 
 Usage: python stage2.py fit --tag v1        (reads val_scores_v1.parquet, writes lgb2_v1.txt)
        python stage2.py apply --tag v1      (reads test_scores_lgb_v1.parquet, writes test_scores2_v1.parquet)
+       add --ce to use the cross-encoder score (crossenc.py, ce_scores_<split>.parquet) as a feature:
+       the model / output tag becomes v1ce
 """
 import argparse
 import json
@@ -79,6 +81,23 @@ def context_features(sc: pd.DataFrame, s23: pd.DataFrame, emb) -> pd.DataFrame:
     return df
 
 
+def attach_ce(df: pd.DataFrame, ce: pd.DataFrame) -> pd.DataFrame:
+    """Add the cross-encoder score of each (s1_id, cand_id) pair, and its rank / gap within the S1."""
+    k = ce.s1_id.values.astype(np.int64) * (1 << 32) + ce.cand_id.values
+    order = np.argsort(k)
+    k = k[order]
+    kd = df.s1_id.values.astype(np.int64) * (1 << 32) + df.cand_id.values
+    pos = np.minimum(np.searchsorted(k, kd), len(k) - 1)
+    hit = k[pos] == kd
+    assert hit.mean() > 0.999, f"cross-encoder scores missing for {1 - hit.mean():.2%} of pairs"
+    df["ce"] = np.where(hit, ce.ce.values[order[pos]], np.nan).astype(np.float32)
+    g = df.groupby("s1_id").ce
+    df["ce_rank"] = g.rank(ascending=False, method="first").astype(np.float32)
+    df["ce_gap"] = (df.ce - g.transform("max")).astype(np.float32)
+    return df
+
+
+CE_FEATS = ["ce", "ce_rank", "ce_gap"]
 FEATS = ["p", "s1_max", "s1_sum", "s1_rank", "p_gap", "s1_n_hi", "s1_n_mid", "sib_n", "sib_cos_max", "sib_cos_mean",
          "sib_addr_max", "sib_name_max", "sib_addr_eq", "sib_name_eq", "c_no_addr"]
 PARAMS = dict(objective="binary", learning_rate=0.05, num_leaves=127, min_data_in_leaf=200, feature_fraction=0.9,
@@ -99,7 +118,9 @@ def rescored(sc, df, p2):
     return out
 
 
-def fit(tag, rounds):
+def fit(tag, rounds, use_ce=False):
+    feats = FEATS + CE_FEATS if use_ce else FEATS
+    out_tag = tag + ("ce" if use_ce else "")
     s1, s23 = load_split("train")
     role = s1.entity_id.map(config.s1_role).values
     from train import truth_rows
@@ -109,16 +130,18 @@ def fit(tag, rounds):
     sc = pd.read_parquet(config.FEAT_DIR / f"val_scores_{tag}.parquet")
     emb = np.load(config.ART_DIR / "train_emb_s23.npy", mmap_mode="r")
     df = context_features(sc, s23, emb)
+    if use_ce:
+        df = attach_ce(df, pd.read_parquet(config.FEAT_DIR / "ce_scores_val.parquet", columns=["s1_id", "cand_id", "ce"]))
     y = df.label.values
     fold = (pd.util.hash_array(df.s1_id.values.astype(np.int64)) % 2).astype(int)
     oof = np.empty(len(df), dtype=np.float32)
     iters = []
     for f in (0, 1):
         tr, te = fold != f, fold == f
-        dtr = lgb.Dataset(df.loc[tr, FEATS], y[tr])
-        dte = lgb.Dataset(df.loc[te, FEATS], y[te], reference=dtr)
+        dtr = lgb.Dataset(df.loc[tr, feats], y[tr])
+        dte = lgb.Dataset(df.loc[te, feats], y[te], reference=dtr)
         mdl = lgb.train(PARAMS, dtr, rounds, valid_sets=[dte], callbacks=[lgb.early_stopping(50), lgb.log_evaluation(200)])
-        oof[te] = mdl.predict(df.loc[te, FEATS], num_iteration=mdl.best_iteration)
+        oof[te] = mdl.predict(df.loc[te, feats], num_iteration=mdl.best_iteration)
         iters.append(mdl.best_iteration)
     s2 = rescored(sc, df, oof)
     res = {}
@@ -128,20 +151,21 @@ def fit(tag, rounds):
             res[f"{name} thr{thr}"] = r
             print(f"{name} thr {thr}: F0.5={r['f05']:.4f} P={r['precision_macro']:.4f} R={r['recall_macro']:.4f}", flush=True)
     n_iter = int(np.mean(iters) * 1.1)
-    mdl = lgb.train(PARAMS, lgb.Dataset(df[FEATS], y), n_iter)
-    mdl.save_model(str(config.ART_DIR / f"lgb2_{tag}.txt"))
-    imp = pd.Series(mdl.feature_importance("gain"), index=FEATS)
+    mdl = lgb.train(PARAMS, lgb.Dataset(df[feats], y), n_iter)
+    mdl.save_model(str(config.ART_DIR / f"lgb2_{out_tag}.txt"))
+    imp = pd.Series(mdl.feature_importance("gain"), index=feats)
     print("importance:\n", (imp / imp.sum()).sort_values(ascending=False).round(4).to_string())
-    json.dump({"results": res, "iters": iters, "final_iter": n_iter}, open(config.ART_DIR / f"stage2_report_{tag}.json", "w"), indent=1)
+    json.dump({"results": res, "iters": iters, "final_iter": n_iter}, open(config.ART_DIR / f"stage2_report_{out_tag}.json", "w"), indent=1)
 
 
-def apply(tag, model_tag, n_chunks=12):
+def apply(tag, use_ce=False, n_chunks=12):
     """Test re-scoring in chunks of whole S1s (all context is within-S1, so chunking is exact).
 
     Each chunk's stage-2 probabilities are checkpointed to FEAT_DIR/stage2_test_parts/, so a machine reset
     (D-012) only loses the chunk in progress, and the peak memory is ~1/n_chunks of a single pass.
     """
     import os
+    model_tag = tag + ("ce" if use_ce else "")
     t = time.time()
     s1, s23 = load_split("test")
     s23 = s23[["name", "addr", "raw_addr"]]
@@ -151,7 +175,10 @@ def apply(tag, model_tag, n_chunks=12):
     sub = sc.iloc[pos].reset_index(drop=True)
     emb = np.load(config.ART_DIR / "test_emb_s23.npy", mmap_mode="r")
     mdl = lgb.Booster(model_file=str(config.ART_DIR / f"lgb2_{model_tag}.txt"))
-    d = config.FEAT_DIR / "stage2_test_parts"
+    feats = mdl.feature_name()
+    ce = (pd.read_parquet(config.FEAT_DIR / "ce_scores_test.parquet", columns=["s1_id", "cand_id", "ce"])
+          if use_ce else None)
+    d = config.FEAT_DIR / f"stage2_test_parts_{model_tag}"
     d.mkdir(exist_ok=True)
     # chunk boundaries on S1 id, so every S1's rows land in one chunk
     edges = np.quantile(sub.s1_id.values, np.linspace(0, 1, n_chunks + 1)).astype(np.int64)
@@ -167,7 +194,9 @@ def apply(tag, model_tag, n_chunks=12):
             ch = sub.iloc[idx].reset_index(drop=True)
             df = context_features(ch, s23, emb)
             assert len(df) == len(ch)                                # sub already has p >= MIN_P
-            p2 = mdl.predict(df[FEATS], num_threads=config.N_JOBS).astype(np.float32)
+            if use_ce:
+                df = attach_ce(df, ce)
+            p2 = mdl.predict(df[feats], num_threads=config.N_JOBS).astype(np.float32)
             del ch, df
         np.save(str(f) + ".tmp.npy", np.stack([idx.astype(np.float64), p2.astype(np.float64)]))
         os.replace(str(f) + ".tmp.npy", f)
@@ -187,11 +216,12 @@ def main():
     ap.add_argument("cmd", choices=["fit", "apply"])
     ap.add_argument("--tag", default="v1")
     ap.add_argument("--rounds", type=int, default=2000)
+    ap.add_argument("--ce", action="store_true", help="add cross-encoder score features")
     args = ap.parse_args()
     if args.cmd == "fit":
-        fit(args.tag, args.rounds)
+        fit(args.tag, args.rounds, args.ce)
     else:
-        apply(args.tag, args.tag)
+        apply(args.tag, args.ce)
 
 
 if __name__ == "__main__":
