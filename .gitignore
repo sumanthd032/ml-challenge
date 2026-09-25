@@ -1,0 +1,11 @@
+# data & large artifacts (not versioned)
+*.zip
+student_resource/dataset/
+artifacts/
+output/*.tsv
+__pycache__/
+*.pyc
+*.parquet
+*.npy
+*.lgb
+.ipynb_checkpoints/

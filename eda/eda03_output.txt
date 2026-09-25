@@ -1,0 +1,95 @@
+S1 name scripts: {'LATIN': 1.0}
+S1 addr scripts: {'LATIN': 1.0}
+S2 name scripts: {'LATIN': 0.9091, 'DEVANAGARI': 0.0519, 'TELUGU': 0.0074, 'KANNADA': 0.007, 'TAMIL': 0.0062, 'BENGALI': 0.0061, 'GUJARATI': 0.0058, 'MALAYALAM': 0.0036, 'ORIYA': 0.0015, 'GURMUKHI': 0.0012}
+S2 addr scripts: {'LATIN': 0.9664, 'NONE': 0.0334, 'DEVANAGARI': 0.0002, 'BENGALI': 0.0}
+S3 name scripts: {'LATIN': 0.9514, 'DEVANAGARI': 0.0277, 'TELUGU': 0.004, 'KANNADA': 0.0037, 'TAMIL': 0.0036, 'BENGALI': 0.0032, 'GUJARATI': 0.003, 'MALAYALAM': 0.0019, 'ORIYA': 0.0007, 'GURMUKHI': 0.0007}
+S3 addr scripts: {'LATIN': 0.966, 'NONE': 0.0335, 'DEVANAGARI': 0.0004, 'BENGALI': 0.0, 'TAMIL': 0.0, 'GUJARATI': 0.0}
+
+positive-pair stats by country/source:
+           exact_key  latin2  addr_empty2 num_overlap  name_jacc
+c     src                                                       
+India S2       0.439    0.77        0.037    0.958801      0.521
+      S3       0.458    0.88        0.040    0.954498      0.580
+US    S2       0.554    1.00        0.049    0.876357      0.709
+      S3       0.517    1.00        0.046    0.898276      0.701
+name_jacc quantiles (latin only): {0.05: 0.0, 0.1: 0.3333333333333333, 0.25: 0.5, 0.5: 0.6666666666666666}
+
+Low name-jaccard latin positives:
+                                  n1                              n2                                                           a1                                                           a2
+               Novao Worldwide, PLLC                 #Novaoworldwide                 7141 Eggbornsville Road, Culpeper County, VA                  Eggbornsville Rd, Culpeper County, Virginia
+                Extra Communications            @Extracommunications House No G-399B, Gf, Kh. No 232/141 Aya Nagar Ext., Aya N...                House No G-a-399b, South Delhi, New Delhi, DL
+                   Leon Ethereum Inc                       eleon.com               OH, 13200 Columbiana Canfield Road, Columbiana                3200 Columbiana Canfield Rd, Columbiana, Ohio
+         Black Impex Private Limited                  Blackimpex.Com 8-1-97/ 3 & 4, Ninithaas Highs, Pedawaltair, Prasanthi Na... 2-8-1-97/ 3 & 4, Ninithaas Highs, Pedawaltair, Prasanthi ...
+                        Aditya Sangh                 adityasangh.c0m 49/2/1, 37 38, Fl No-06, Vet Pride Appt Tapovan Road, Aga... ##49/2/1, 37 38, FL NO-06, VET PRIDE APPT TAPOVAN ROAD, A...
+       Best Ventures Private Limited                        Onyxdova Fakirpur, Jagatpur, Po/Ps: Jagatpur, Dist: Cuttack, Jagat...                          Fakirpur, Cuttack, Jagatpur, ଓଡ଼ିଶା
+                    Allied Interests             alliedinterests.com               826 Brubaker Way, Santaquin City (utah Co), UT                 Brubaker Way, Santaquin City (Utah Co), Utah
+                  Oshiro Rapid Crane                    @oshirorapid                   8384 Meadowbridge Road, Hanover County, VA                    8384C MEADOWBRIDGE RD, VA, HANOVER COUNTY
+    Yamuendra Metals Private Limited      yamuendrametalsprivate.com 40/1579 A2 Punathilpadam Road Edappally P O, Cochin, Erna... Keralam, #40/1579 A2 PUNATHILPADAM ROAD EDAPPALLY P O, CO...
+               Flowers and Pagel LLC                 flowerspagelcom                               100 Rock Pointe Lane, Cary, NC                     100 Rock Pointe Ln, Cary, North Carolina
+        Renelle Wilson Ace Steel LLC                     Ariakelolum                         15029 Emerson Court, Oregon City, OR                     15029 Emerson Court, Oregon City, Oregon
+             American Utilities PLLC           americanutilities.com                                   12 Sylvan Road, MA, Norton                                   12 SYLVAN ROAD, NORTON, MA
+         Oncology Diamond Health Inc                        Xyloecto                             2574 Spaulding Street, Omaha, NE                           2574 Spaulding St, Omaha, Nebraska
+Rosella Delaney Signature Twelve LLC     roselladelaneysignature.com                     112 Laurel Lane, Village Of Bellevue, WI                112 Laurel Ln, Village Of Bellevue, Wisconsin
+   Jamnadas Business Private Limited            jamnadasbusiness.com Officeno.A/2-609, Palladium, Nearorchidwood, Opp.Divyabha...                 H.no 459 Officeno.a/2-609, Ahmedabad, ગુજરાત
+                         Star Plains                  starplains.com                               13 Bay Hill Lane, Magnolia, DE                         14 Bay Hill Lane, Magnolia, Delaware
+                    Hohmann Data LLC                 hohmanndata.com                         5307 Archstone Avenue, Tewksbury, MA                          5307 ARCHSTONE AVENUE, TEKSBURY, MA
+            Silver Automation Brands                    Sabrands.Com                                 2926 Maple Street, Fargo, ND                          2926b Maple St, Fargo, North Dakota
+   Aarvavi Publicity Private Limited                         Fluxvio                      A-58 Midcwaluj, Aurangabad, Maharashtra     A-58 Midcwaluj, Aurangabad (MAHARASHTRA), Aurangabad, MH
+              Norah Nicol Arc Clinic                         Beloveo                                 363 Highway 107, Vilonia, AR                           363 Highway 107, Vilonia, Arkansas
+                          JM Alibaba                   jmalibaba.com                     UT, Springville, 6787 Holiday Hills Road                    787 Holiday Hills Road, Springville, Utah
+                 Newton Ethereum LLC                    Lyraectoflux                               7 Hidden Acres Road, Wales, MA                              WALES, MA, 7. HIDDEN ACRES ROAD
+              Vaayuaksh Services LLP                     Kelolyraevo Plot No 42Madhusudan Nagar Unit Iv Po Kharvel Nagar, Bhub... H.no 42Madhusudan Nagar Unit Iv Po Kharvel Nagar, Bhubane...
+              Cuello Investments Inc           cuelloinvestments.com                         MN, Minnetonka, 5912 Red Cherry Lane                      5912 Red Cherry Ln, N/A, MINNETONKA, MN
+   Precision Commercial Alliance LLC precisioncommercialalliance.com                       607 Seventh Street, Fl 1, Columbia, MO                                 607 SEVENTH ST, MO, COLUMBIA
+
+S1 name-key frequency: share of S1 whose key is shared with another S1: 0.49156
+unmatched S2 whose key exists in S1: 0.39546
+matched   S2 whose key exists in S1: 0.62798
+
+T1 France samples
+   entity_id                      business_name                                         business_address country
+S1-258113226                Shidokan Ecole SARL                  17 Rue de Valmy, Lille, Hauts-de-France  France
+S1-643804435                   Pique Ecole EURL              20 BD Jules Verne, Nantes, Pays de la Loire  France
+S1-230207052                Chambre Medico SARL        5 Avenue Gaston Bonnier, Nantes, Pays de la Loire  France
+S1-759071723              Supérieure Sante EURL                     9 Rue Rubens, Lille, Hauts-de-France  France
+S1-267637237 Vidourle Boulistes Élémentaire SAS       Pessac, 59 Avenue des Echoppes, Nouvelle-Aquitaine  France
+S1-811528684                 EHPAD Saint Sophro 12 RUE de lOrne, 44800, Saint-Herblain, Pays de la Loire  France
+ S1-33093211                Pipelettes Clinique                    2 Rue Leveux, Calais, Hauts-de-France  France
+S1-277605064                    Mille Club EURL  28 Bis Boulevard Joliot Curie, Nantes, Pays de la Loire  France
+S1-465809292             Pessac Maternelle SARL    90 Rue Simone de Beauvoir, Pessac, Nouvelle-Aquitaine  France
+S1-359269622                 Communale Club SAS                       Hauts-de-France, 6 BD Papin, Lille  France
+S1-751787430                Mouvement Club EURL               34 RUE Buhan, Bordeaux, Nouvelle-Aquitaine  France
+S1-287168196      Game Departemental Ecole EURL         9 Rue du Maréchal Foch, Pornic, Pays de la Loire  France
+
+T2 France samples
+   entity_id                      business_name                                        business_address country
+S2-124594349                           Ciraecto                   33 BIS RUE PRUNIER, Bordeaux, Gironde  France
+S2-726354849                     Aikido Anciens     51 R DE LA PLANCHE AU GUE, NANTES, Pays de la Loire  France
+S2-733258288              Fédération du Musical                   3 R MIMEREL, ROUBAIX, Hauts-de-France  France
+S2-836221765                          CW Groupe                       28 R. PIERRE MAUROY, FLCAS, LILLE  France
+S2-977094934                    RI Amicale SARL                    13 RUE ALPHONSE MERCIER, LILLE, Nord  France
+S2-382859363                  JOURS ÇONCEPT SCI                  41 C RUE DU MARECHAL FRENCH, DUNKERQUE  France
+S2-590739497                      SA PG Finance                                   79 RUE BRUNET, Pessac  France
+S2-933271731      La Teste-de-Buch College SARL 89 AV DE BISSERIE, LA TESTE-DE-BUCH, Nouvelle-Aquitaine  France
+ S2-24725737     Prevention (France) Centre SAS         190 BD DE BEAUREPARIE, ROUBAIX, Hauts-de-France  France
+S2-775810722                     SCI VY Loisirs            Pessac, Gironde, 60 AVENUE DU PARC D'ESPAGNE  France
+S2-737332375                  LAZARE PARENTS EI 3B RUE DU PETIT VILLAGE, ST.-HERBLAIN, Pays de la Loire  France
+S2-915624550 Thoracique Fermiers Compagnie Sarl                     43 RUE DE MADRID, BORDEAUX, Gironde  France
+
+T3 France samples
+   entity_id             business_name                                       business_address country
+ S3-94181786   Amicale-Marseillaise du      25 R Rue Albert Doyen, Dunkerque, Hauts-de-France  France
+S3-624979045       Chantons Tgavsax SA                           N°23 R. D'arras, Lille, Nord  France
+S3-648411774                 Ets Alter           120 R. D' Anvers, Tourcoing, Hauts-de-France  France
+S3-652097034        Union dû Organisme                       196 Cours De L'argonne, Bordeaux  France
+ S3-84595509       Bonne-Solutions SAS         Nº 257 Route De La Côte D'amour, Saint-nazaire  France
+S3-328131909           Maison  Team EI                      20 Av. Gorge V, Mérignac, Gironde  France
+S3-854905183          Maison Àzar SASU        16 R Des Maraichers, Tourcoing, Hauts-de-France  France
+S3-432383364         Jumelage & Frèrês                         61 R. Du Grand Chsmin, Roubaix  France
+S3-756477686 Saint-Nazaire Parents SAS Saint-nazaire, 18 Rue Du Bods Savary, Loire-Atlantique  France
+S3-375346173       Sourires Groupement     51 Avenue Du Président Jf Kennedy, Pessac, Gironde  France
+ S3-94960686                  Zetariza    109 Avenue de Magudas, Nouvelle-Aquitaine, Mérignac  France
+S3-354037218        Comité  de Chronos                              5 Rue Bernos, Lille, Nord  France
+T1 per-country counts {'India': 809986, 'US': 663106, 'France': 259452}
+T2 per-country counts {'India': 2312565, 'US': 1871330, 'France': 703378}
+T3 per-country counts {'India': 2405000, 'US': 1945701, 'France': 731615}

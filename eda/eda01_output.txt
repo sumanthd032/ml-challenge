@@ -1,0 +1,99 @@
+
+### train source1: 2,206,821 rows, unique ids 2,206,821
+country: {'US': 1323633, 'India': 883188}
+  business_name: empty=0.000% null-literal=0.000% mean_len=24.0
+  business_address: empty=0.000% null-literal=0.000% mean_len=52.1
+  sample:
+   entity_id                business_name                                                business_address country
+S1-214435868               Meek Principal                            Fort Recovery, OH, 2620 Sawmill Road      US
+S1-522572257          Family Charities II                                   2819 Sanctuary Cove, Katy, TX      US
+S1-998727651  Global Complete Vendome LLC                             3106 London Lane, Missouri City, TX      US
+S1-431969295      Taylor Battery Holdings                    3142 Village Pine Cove, West Valley City, UT      US
+S1-825177873         Complete Premier Tbk                                           25622 6, Nappanee, IN      US
+S1-461666539                 Johns Viking                             23213 Plantation Drive, Atlanta, GA      US
+S1-861026301 Maa Security Private Limited Kh No-436/437, Khushal Park Main Road, Ghaziabad, Uttar Pradesh   India
+S1-770649493      Platinum Star Aspac LLC                              3100 Seminole Loop, Crossville, TN      US
+
+### train source2: 5,034,616 rows, unique ids 5,034,616
+country: {'US': 3016817, 'India': 2017799}
+  business_name: empty=0.000% null-literal=0.000% mean_len=25.1
+  business_address: empty=3.356% null-literal=0.000% mean_len=46.2
+  sample:
+   entity_id                              business_name                                                        business_address country
+S2-153809211                    Royal Safe Paceline Inc                                          HOMELAND AVE, NULL, NORMAN, OK      US
+S2-860628396                Heritage Éducation Products                           7582 EAST POINT DOUGLAS RD, COTTAGE GROVE, MN      US
+S2-214575246 Knight Educational Society Private Limited Karnataka, 50 , KNO 499/499, BCMC HBCS, RAGHUVANAHALLI, BANGALORE SOUTH   India
+S2-300083710                 HART VALLEY LÍBERTY CENTER                         FOURTEENTH STREET, SAN BERNARDINO TOOWNSHIP, CA      US
+S2-281128880                    Rainbow Partners Center Gujarat, 401-402, SHREEYA ATLANTA, NR SAHJANAND BUNGLOW, AHMADABAD CITY   India
+S2-133443825             ईस्ट डेवलपर्स प्राइवेट लिमिटेड                      BHAGAT HOUSE, JOGESHWARI EAST, MUMBAI, Maharashtra   India
+S2-439817997              PC Green, Critsba, O.D., P.C.                                              86 Searcy Lane, STALEY, NC      US
+S2-892103403                            tharpglobal.com                                          MANCHESTER, TN, 437 WOODROW ST      US
+
+### train source3: 5,285,603 rows, unique ids 5,285,603
+country: {'US': 3170056, 'India': 2115547}
+  business_name: empty=0.000% null-literal=0.000% mean_len=25.2
+  business_address: empty=3.328% null-literal=0.000% mean_len=46.7
+  sample:
+   entity_id                           business_name                                                            business_address country
+S3-353598503                 Prairie  Futurecorp Inc                               5402 Alexander Hill Road, Washington, Indiana      US
+S3-113330256                Associates + Co Care Ltd Plot No. 23, S.v .Co.Operative Industrial Estates, Balanagar, Hyderabad, TG   India
+S3-518854530 Pediatric Dentistry Group Of  Pittsburg                                                      2254, Pittsburg, Texas      US
+S3-719640223 Flexible  Consultancy Private (Limited)                                                         44, Girwa, राजस्थान   India
+S3-995424349         राम प्रोडक्ट्स प्राइवेट लिमिटेड                               Rajendra Nagar Rafi Nagar Mankapur, Gonda, UP   India
+S3-544234820    Behavioral Health  Group of Syracuse                             300 Audubon Pkwy, # Unit 76, Syracuse, New York      US
+S3-200923495                               Deltamira Plot No. 2667/10569, Khata No. 3470/4044, Dhenkanal Town, Dhenkanal, Orissa   India
+S3-824378738                Lorrin  Germain Services                                      5534 Fairoaks Dr, Salt Lake City, Utah      US
+
+### test source1: 1,732,544 rows, unique ids 1,732,544
+country: {'India': 809986, 'US': 663106, 'France': 259452}
+  business_name: empty=0.000% null-literal=0.000% mean_len=23.8
+  business_address: empty=0.000% null-literal=0.000% mean_len=57.2
+  sample:
+   entity_id                     business_name                                                                           business_address country
+S1-516069816                   Collège Cathare                                           20 Rue de Chateaudun, Tourcoing, Hauts-de-France  France
+S1-630580376        High Impex Private Limited                          Opp. Goyal House, Near Petrol Pump, Ajmer Road, Jaipur, Rajasthan   India
+S1-529868590    WFR Multitrade Private Limited                          8-B, F.Floor, Pkt-1, Sukhdev Vihar, New Delhi, South Delhi, Delhi   India
+S1-452830601     Sai Eldercare Private Limited                                    12, Double Storey, New Rajinder Nagar, New Delhi, Delhi   India
+S1-217141443 Maa International Private Limited Flat No. 288-Top Floor Sector-3-Pocket-1/2, Gate-3-Ph-1, Dwarka, New Delhi, South West ...   India
+S1-363971649  Uniwide Polymers Private Limited            Near, Neeraj Nagar (Td-556), Madhya Pradesh, Khasra No. 80/2/1/1, Huzur, Bhopal   India
+S1-101355307           Siis Gulf Interiors LLC                                                                     4775 200, Bluffton, IN      US
+S1-279512907              OEC Buildcon Limited                              Uttar Pradesh, Sector - 63, J - 1, Gautam Buddha Nagar, Noida   India
+
+### test source2: 4,887,273 rows, unique ids 4,887,273
+country: {'India': 2312565, 'US': 1871330, 'France': 703378}
+  business_name: empty=0.000% null-literal=0.000% mean_len=25.7
+  business_address: empty=2.648% null-literal=0.000% mean_len=50.4
+  sample:
+   entity_id                                    business_name                                                                           business_address country
+S2-786196841           Maddox, Thomas & Parker Markets Summit                                                                     4306 31RD LN, YUMA, AZ      US
+S2-457058927         Ratnagiri Public School Limited Services                              OFFICE 227-228, 2ND FLR, VARDHAMAN COMPLEX, THANE, महाराष्ट्र   India
+ S2-56996144                               diraenterprise.com                                                      2/2-D, EAST AZAD NAGAR, DELHI, दिल्ली   India
+S2-162824899                                       Gmk & S0ns                                      H.NO 220/D BIDHAN PARK, KOLKATA, KOLKATA, West Bengal   India
+S2-356447747                           Green-Limited Partners UCP 008 , ROOM NO. G4, NORTH AVENUE URVASHI BENGAL AMBUJA, CITYCENTRE, DURGAPUR, পশ্চিম...   India
+S2-359726566                              Peuple Foyer France                                                12 BIS R. DES FLEURS, CALAIS, Pas-de-Calais  France
+S2-712082724 Sahyadree Eduservices Industries Private Limited        DOOR NO ##556 B-613, MADHUBAN BUILDING, UPPER GOVIND NAGAR MALAD (EAST), महाराष्ट्र   India
+S2-211725757                       Anish Ltd Pvt [Healthcare] D/82 NO 80 FLOOR 3RD BLOCK-LU LANDMARK, NEAR NDPL OFFICE LOCAL SHOPPING CENTRE, DELHI, ...   India
+
+### test source3: 5,082,316 rows, unique ids 5,082,316
+country: {'India': 2405000, 'US': 1945701, 'France': 731615}
+  business_name: empty=0.000% null-literal=0.000% mean_len=25.7
+  business_address: empty=2.678% null-literal=0.000% mean_len=48.7
+  sample:
+   entity_id                                    business_name                                                      business_address country
+ S3-35552501 Heritage Heritage Semiconductor Union (Holdings)                         41 Chert Street, PMB 7452, Stephens, Arkansas      US
+S3-172385158        Hari Krishna Tech Traders Private Limited                           0979 Level 14, Shaikpet, Hyderabad, తెలంగాణ   India
+S3-796255769                          Etowah Heart Council Co                                     200 9th Street, Etowah, Tennessee      US
+S3-805314124                   Shree Logistics Limited Center                                                                         India
+S3-598423836                Kaja Machuso Interstate Cargo LLC                                2991 Farm To Market 1131, Vidor, Texas      US
+S3-690288997                                     Pyracalodova                        Roubaix, 93 Rue de Sébastopol, Hauts-de-France  France
+S3-318761217                                       Titan Corp                           5307 Cardinal Flower Cove, Spicewood, Texas      US
+S3-220170846            Hariharpara Medical Private (Limited) C/o. Younus Ali Santalpara Vill Po-choa, Hariharpara, Murshidabad, WB   India
+
+### ground truth
+rows 2206821 singletons 0.05584820880352326
+matches per S1 distribution: {0: 123247, 1: 119157, 2: 375212, 3: 530841, 4: 484115, 5: 321957, 6: 164868, 7: 63968, 8: 18680, 9: 4205, 10: 534, 11: 37}
+S2 per S1: {0: 287745, 1: 789108, 2: 652779, 3: 333957, 4: 119078, 5: 24154}
+S3 per S1: {0: 266276, 1: 716417, 2: 668375, 3: 372443, 4: 145116, 5: 35378, 6: 2816}
+total matched ids 7638365 unique 7638365 ids matched to >1 S1: 0
+S2 records matched: 0.7336446314872872
+S3 records matched: 0.7463190103380826

@@ -1,0 +1,176 @@
+
+==================== US groups
+
+[S1-826176992] Gilda's Pharmaceuticals | 4809 Harrison Ferry Road, Hurlock, MD
+   S2: Gilda's Pharmaceuticals  Co | HARRISON FERRY ROAD, HURLOCK, MD
+   S2: Gilda's Pharmaceuticals Ltd | www.gildasph.com | 4809 HARRISON FERBY RD, HURLOCK, MD
+   S3: Gilda's Phármaceuticals | 4809B Harrison Ferry Road, Hurlock, Maryland
+
+[S1-202990059] Internal Medicine Associates LLC | 20718 Adams Mill Place, Loudoun County, VA
+   S2: Internal Medicine Associates LLC | ASHBURN, 0020718 ADAMS MILL PLACE, VA
+
+[S1-881767188] 4220 First Ave Apartments LLC | 972 Old Ridge Road, Cross Creek Township, PA
+   S2: 4220 FIRST AVE  APARTMENTS LLC | PA, AVELLA CITY, 972 OLD RIDGE RD
+   S3: 4220firstave.Com | 972 Old Ridge Road, Cross Creek Township, Pennsylvania
+   S3: LLC 4220 Fírst Ave Apartments | 972 Old Ridge Rd, Cross Creek Township, Pennsylvania
+
+[S1-219285985] Fairfax, Barton and Noble Inc | 431 Millwood Avenue, Fl 0, Wichita, KS
+   S2: Fairfax, Barton Inc Noble and | 448 MILLWOSD AVE, WICHITA, KS
+   S3: Fairfax, Barton and Noble Inc Center | 43 Millwood Ave, Fl 0, Wichita, Kansas
+
+[S1-21311933] Martinez Fidelity | 1701 37th Avenue, Columbia Heights, MN
+   S2: Martinez (Fidelity) | 1701 37TH AVE, COLUMBIA HEIGHTS, MN
+   S2: Martinez Fídelity | 
+   S3: Martinez Fidelity Fidelity | 1701 37th Ave, Columbia Heights, Minnesota
+
+[S1-972019287] Housing Program | TX, 14826 Aberdeen Meadow Lane, Houston
+   S2: Housing Prógram | HOUSTON, 014826 ABERDEEN MEADOW LANE, TX
+   S2: Housing Program Corp | 
+   S2: Housing Prógram | 
+   S2: HOUSING PROGRAM | 014826 ABERDEEN MEADOW LN, HOUSTON, TX
+   S3: Housing Program LP | 
+   S3: H0using Program | 14826 Aberdeen Meadow Lane, Houston, Texas
+
+[S1-556029210] Moor Industries LLC | 1809 Boathouse Road, Edmond, OK
+   S2: MOOR  LNDUSTRIES LLC | 1809 BOATHOUSE ROAD, EDMOND, OK
+   S3: Moor Industries [LLC] | 1809 Boathouse Rd, Edmond, Oklahoma
+   S3: Moor (Industries) | Oklahoma, Edmond, 1809 Boathouse Rd
+   S3: Services Moor LLC | Boathouse Rd, Edmond, Oklahoma
+
+[S1-811859579] Rev It Up Cleaning Service | 906 Westlake Drive, Austin, TX
+   S3: Up Service Rev Cleaning [It] | Westlake Dr, Austin, Texas
+   S3: Rev It Up Cleaning Service LP | 906 Westlake Dr, Austin, Texas
+   S3: Sérvice It Up Cleaning Rev | 906 Westlake Drive, Austin, Texas
+   S3: Rev It Úp Cleaning Service | 906 Westlake Dr, Austin, Texas
+
+[S1-396445854] V+ Muniholdings Inc | 1483 Co Rd 59, Chesapeake, OH
+   S2: V+ Munih0ldings Inc | 1483-A CO RD 59, CHEASPEAKE, OH
+   S2: V+ Muniholdings | CHEASPEAKE, 1483-A CO RD 59, OH
+   S2: V+ Munholgs Inc | CO RD 59, CHEASPEAKE, OH
+   S2: V+ Muniholdings Inc. | 
+   S3: #vmuniholdings | 1483 Co Rd 59, Chesapeake, Ohio
+   S3: V+  Muniholdings Inc | 1483 Co Rd 59, Chesapeake, Ohio
+
+[S1-714456704] Pediatric Care LLC | IN, Indianapolis, 5028 Bonnie Brae Street
+   S2: Pediatric Care | 5028 BONNIE BRAE ST, INDIANAPOLIS, IN
+   S3: Pediatriccare.Com | Indiana, 5028 Bonnie Brae Street, Indianapolis
+   S3: Center Pediatric LLC | 5028 Bonnie Brae St, Indianapolis, Indiana
+
+[S1-945038542] ZN Federal Heritage | 11315 81st Avenue, Tigard, OR
+   S2: ZN  Federal Heritage | 11315  81ST AVE, PORTLAND TWONSHIP, OR
+   S2: ZN Federal  Heritage | 11315  81ST AVE, PORTLAND TWONSHIP, OR
+   S2: Zn Federal Heritage | 11315  81ST AVENUE, PORTLAND TWONSHIP, OR
+   S2: ZN FEDERAL HERITAGE | 11315  81ST AVE, PORTLAND TWONSHIP, OR
+
+[S1-111275615] Valenzuela, Vere, DDS | 26096 37, Elwood, IN
+   S2: VALENZUELA, VERE, DDS | 26096 37, ELWOOD, IN
+   S3: Valenzuelaveredds.Com | 26096 37, Elwood, Indiana
+   S3: Va1enzuela, Valenzuela, Vere, | 26096 37, Elwood, Indiana
+   S3: Irivantage t/a Valenzuela, Vere, DDS | 26096 37, Elwood, IN
+
+==================== India groups
+
+[S1-996435627] Baba Enterprises Private Limited | 1/1 B Radhakrishnan St, Ammapalayam, Avinashi, Th, Tiruppur, Coimbatore, Tamil Nadu
+
+[S1-166944542] Vision Power Private Limited | C/O. Steelcast Limited Ruvapari Road, Bhavnagar, Gujarat
+   S2: વિઝન પાવર પ્રાઇવેટ લિમિટેડ | C/O. STEELCAST LIMITED RUVAPARI ROAD, BHAVNAGAR, ગુજરાત
+   S3: વિઝન પાવર પ્રાઇવેટ લિમિટેડ | Block C-303 C/o. Steelcast Limited Ruvapari Road, Bhavnagar, GJ
+   S3: વિઝન પાવર Private Limited | Block C-303 C/o. Steelcast Limited Ruvapari Road, Bhavnagar, GJ
+
+[S1-151497139] Lalwani Herbal Private Limited | 161, V.I.P. Paraspar Nagar, Indore, Madhya Pradesh
+   S2: Lalwani Herbal Pite Limited #77599 | ##161, V.I.P. PARASPAR NAGAR, INDORE, Madhya Pradesh
+   S2: Lalwani Herbal Private | ##161, V.I.P. PARASPAR NAGAR, INDORE, Madhya Pradesh
+   S2: LALWANI HERBAL PRIVATE LIMITED | ##161, V.I.P. PARASPAR NAGAR, INDORE, Madhya Pradesh
+   S3: Lalwani Herbal Private Ltd | MP, Indore, V.i.p. Paraspar Nagar, 161
+
+[S1-215783598] One Technologies Pvt Ltd | Flat No -G-1 Sn -11 Karishma Nr-Kausar Bag Kondhwa Kd, Pune, Maharashtra
+   S2: वन टेक्नोलॉजीज प्रा. लि. | Maharashtra, PUNE, FLAT NO -G-001 SN -11 KARISHMA NR-KAUSAR BAG KONDHWA KD, PUNE
+   S2: One [Technologies] | FLAT NO -G-001 SN -11 KARISHMA NR-KAUSAR BAG KONDHWA KD, PUNE, Maharashtra
+   S3: onetechnologies.com | Flat No -G-001 Sn -11 Karishma Nr-kausar Bag Kondhwa Kd, Pune, महाराष्ट्र
+   S3: Sri ONE TECHNOLOGIES PVT LTD | Flat No -G-001 Sn -11 Karishma Nr-kausar Bag Kondhwa Kd, Pune, महाराष्ट्र
+
+[S1-29867231] Big Digital Infra Private Limited | H. No. 8-2-293/82/A/727 & 727/1/2, Plot No. 727, Road No.36, Jubilee Hills, Hyderabad, Telangana
+   S2: బిగ్ డిజిటల్ ఇన్‌ఫ్రా ప్రైవేట్ లిమిటెడ్ | & 727/1/2, HYDERABAD, Andhra Pradesh
+   S3: digitalinfrabig.com | H. No. 8-2-293/82/A/727 & 727/1/2, Hyderabad, TG
+   S3: బిగ్ డిజిటల్ ఇన్‌ఫ్రా ప్రైవేట్ లిమిటెడ్ | H. No. 8-2-293/82/A/727 & 727/1/2, Hyderabad, తెలంగాణ
+
+[S1-463372164] Vibgyor & Brothers Private Limited | Fn 201 Sri Sai Sadan Apts, 4Th Lane, Seetharama Nagar, Guntur, Andhra Pradesh
+   S2: Vibgyor & Brothers Private  Limited | #00430 FN 201 SRI SAI SAAN APTS, 4TH LANE, SEETHARAMA NAGAR, GUNTUR, Andhra Pradesh
+   S3: Vibgyor & Brothers Limited Private | Guntur, ఆంధ్రప్రదేశ్, Guntur, 4Th Lane, Seetharama Nagar, Fn 20 Sri Sai Sadan Apts
+   S3: Vibgyor & Brothers Private | Fn 20 Sri Sai Sadan Apts, 4Th Lane, Seetharama Nagar, Guntur, AP
+
+[S1-591328665] First South Logistics Private Limited | 908, 9Th Floor Mercantile House, 15 K.G. Marg, Delhi, New Delhi, Delhi
+   S2: फर्स्ट साउथ लॉजिस्टिक्स प्राइवेट लिमिटेड | Delhi, 9TH FLOOR MERCANTILE HOUSE, 15 K.G. MARG, NEW DELHI, DELHI, B3/908
+   S2: First साउथ Logistics Private Limited | B3/908, 9TH FLOOR MERCANTILE HOUSE, 15 K.G. MRAG, DELHI, दिल्ली
+   S3: फर्स्ट साउथ लॉजिस्टिक्स प्राइवेट लिमिटेड | 908, Delhi, New Delhi, DL
+   S3: First South Logistics Private | 
+
+[S1-272155696] Dream Projects Private Limited | Sh-35, Sunrise Commercial, Surat, Chorasi, Gujarat
+   S2: ડ્રીમ પ્રોજેક્ટ્સ પ્રાઇવેટ લિમિટેડ | SH-35, CHORASI, SURAT, Gujarat
+   S2: ડ્રીમ પ્રોજેક્ટ્સ પ્રાઇવેટ લિમિટેડ | SH-35, SUNRISE COMMERCIAL, CHORASI, SURAT, Gujarat
+   S3: Projects Dream Private [Limited] | H.no 92 Sh-35, Sunrise Commercial, Chorasi, Surat, ગુજરાત
+   S3: Dream Projects Private Ltd | ગુજરાત, No. 92 Sh-35, Surat, Chorasi
+   S3: ડ્રીમ પ્રોજેક્ટ્સ પ્રાઇવેટ લિમિટેડ | H.no 92 Sh-35, Chorasi, Surat, ગુજરાત
+
+[S1-874525121] Anand Infra Private Limited | F-27, First Floor, Savitri Market Sector-18, Noida, Gautam Buddha Nagar, Uttar Pradesh
+   S2: आनंद इंफ्रा प्राइवेट लिमिटेड | F-27, FIRST FLOOR, SAVITRI MARKET SECTOR-18, NOIDA, GAUTAM BUDDHA NAGAR, Uttar Pradesh
+   S3: आनंद इंफ्रा प्राइवेट लिमिटेड | F-27, Ghaziabd, Gautam Buddha Nagar, UP
+   S3: Anand Infra Private | F-27, Ghaziabd, Gautam Buddha Nagar, UP
+   S3: आनंद इंफ्रा प्राइवेट लिमिटेड | Noida, UP, Ghaziabd, F-27
+
+[S1-901392181] Instant Law Chambers | Gujarat, Ahmedabad, New Cloth Market O/S. Raipur Gate, 203/2
+   S3: Law Instant Partners | 2-03/2, New Cloth Market O/s. Raipur Gate, Ahmedabad, GJ
+   S3: Instant Law Chbmres | 2-03/2, Ahmedabad, New Cloth Market O/s. Raipur Gate, GJ
+   S3: Instant Law Chambers  Corporation | 2-03/2, Ahmedabad, New Cloth Market O/s. Raipur Gate, GJ
+   S3: Instant Law Chámbers | 2-03/2, Ahmedabad, New Cloth Market O/s. Raipur Gate, ગુજરાત
+
+[S1-692517014] Kim Consultants | Plot No 17, Jam Nagar, Bharatwada Road, Nagpur, Maharashtra
+   S2: KIM CONSULTANTS  CO | PLOT NO 17, JAM NAGAR, BHARATWADA ROAD, NAGPUR, महाराष्ट्र
+   S3: Kim Consultants LLP | Plot No 17., NULL, Nagpur, MH
+   S3: Kim Consultants | Plot No 17., Jam Nagar, Bharatwada Road, Nagpur, NULL, MH
+   S3: Kim Cónsultants | #17., Jam Nagar, Bharatwada Road, Nagpur, NULL, MH
+
+[S1-931309138] LQT Lube Pvt. Ltd. | First Floor D 132 Sector 10, Noida, Gautam Buddha Nagar, Uttar Pradesh
+
+==================== singletons
+[India] Pc Technologies Pvt. Ltd. | Pent House, 501, Ramchabbra Vihar Opp.Bsnl Office, Yellareddyguda, Ameerpe, T, Hyderabad, Telangana
+[US] Complete Laboratories LLC | Greene County, VA, 1009 Rippin Run Road
+[India] Priyanka Polyester (India) Group | Uttar Pradesh, J-1006/10F, Gautam Buddha Nagar, Noida, Stellar One, Gh-09, Sector-1
+[US] Montes Solution LLC | 31150 Coley Farm Road, Norwood, NC
+[India] Tulsi Pharmaceutical Corp | 8-3-234/573/A, L N Nagar, Khairatabad, Hyderabad, Telangana
+[US] Foot & Ankle Clinic LLC | 535 Duke William Court, Ofallon, MO
+[India] Hanjer Foundation | A/25 Nayapalli Nilakantha Nagar, Bhubaneswar, Puri, Orissa
+[US] Cardiology Physicians LLC | Belmont, MA, 69 Lexington Street
+[US] Hagey, Shank and Rose LLC | 1325 Greencroft Drive, Unit APT 369, Goshen, IN
+[India] Lata Factory Private Limited | 613/614 615 Bswastik, Mumbai, Disa Corporate Park, Ghatkopar (W), L B S Marg, Opp. Shreyas, Maharashtra, Cinema
+
+==================== unmatched S2 / S3 samples
+   entity_id                                   business_name                                                                 business_address country
+S2-676708011                   तिरुपति पावर प्राइवेट लिमिटेड                                       Maharashtra, HNO697, CHITEGAON, AURANGABAD   India
+S2-863733280            MODERN PACKAGING GLOBAL PARTNERS LTD                                             1038 HOAERBURGH ROAD, NY, SHAWANGUNK      US
+S2-733093024                STERLING ANALYTICS  BRANDS GROUP                                               8521 MAX MEADOWS DR, MINT HILL, NC      US
+S2-582639845                       Blue & Associates Pvt Ltd 46 BWING, 4DRATNAYOGIAPPT, OPPSWASTIKWOODSNR.SOMESHWARAENCLAVE, VESU, SURAT, ...   India
+S2-924249515 અરિહંત શિવા ઇન્વેસ્ટમેન્ટ જનરલ પ્રાઇવેટ લિમિટેડ G 06, AARYAN PRIDE, NEAR SHAYONA TILAK 3, NEW S. G. ROAD, GOTA, CHANDLODIYA, ...   India
+S2-134530780         Custom Genomic Corporation Midtown Inc.                                                   497 MINNESOTA AVE, BUFFALO, NY      US
+S2-389084474                              East LLP [Service] MILKAT NO 255, NEAR BHAIRAVNATH MANDIR AT MARGASANI TALUKA VELHE, PUNE, महारा...   India
+S2-156447965              Green Federal Vísion Center #75145                                                     CAMBRIDGE, 2678  OAK CIR, MN      US
+S2-707931009                    Salasar Publications Limited                                             D-95ANAND. NIKETAN, NEW DELHI, Delhi   India
+S2-358816575                            Lakshman Travels Ltd                                    B-1/81/1, SECTOR-G, JANKI PURAM, उत्तर प्रदेश   India
+S2-527775278                      HALCYON PURECYCLE HOLDINGS                         52146 CHIRIKOF DR, PMB 6519, KENAI PENINSULA BOROUGH, AK      US
+ S2-17446122                     Rapid Anchor Allocation LLC                                                   2134 STONEHENGE ST, NEWTON, NC      US
+   entity_id                            business_name                                                                 business_address country
+S3-608316959                 Industries & Co Dominion                     Madhepura Mdg, Door No ##4 C/o Sita Ram Singh, BR, Madhepura   India
+S3-707193533                             Reverse Co &                        B-1/4 Lgf-block B-1 Malviya Nagar, South Delhi, Delhi, DL   India
+S3-548806095                जैन Infra Private Limited                         Flat No. C 1/101, Gh 4, Sector 52, Gurugram, Chennai, HR   India
+S3-510288211             EPW Private Limited Services                                                      D9, Mumbai, Mumbai City, MH   India
+S3-367201949             Dl  Industries Group Exports                                                               No 14, Madurai, TN   India
+S3-625722112                     Better  Parts L.L.C.                             11431 Chestnut Hill Drive, Charlotte, North Carolina      US
+S3-756893308                        Baba Impex L.L.P. Plot 6 404, Kashi Plaza, Beside Children Hospital Majura Gate, Ahmedabad, Sur...   India
+S3-386971487 Miranda, Hunt and Rollins Jab Summit LLC                                             New York, 654 Long Pond Roda, Greece      US
+S3-503940064                      DL Intercontinental                                                       3035 292, Belfry, Kentucky      US
+S3-536485450      Professional Health Works Riverside                                                  Texas, Kyle, 147 Aber Oak Drive      US
+  S3-4903391                   Martin and Bdkc Design                                              Longacres Dr, Minnesota, Chanhassen      US
+S3-216536365     Urology Health of Crosbyton Partners                                           738 Aspen Saint, N/A, Crosbyton, Texas      US
+
+row-position corr S1 vs S2 match: 0.009458314045855318
+id-number corr: -0.0014278401643240074
