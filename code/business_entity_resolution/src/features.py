@@ -121,54 +121,40 @@ def _chunk(args):
     return np.array([_pair_feats(a, b) for a, b in zip(A, B)], dtype=np.float32)
 
 
-def compute_features(pairs: pd.DataFrame, s1: pd.DataFrame, s23: pd.DataFrame, idf: dict) -> pd.DataFrame:
-    """pairs must have s1_id, cand_id (+ blocking columns). Returns pairs with feature columns added."""
-    import time
-    ia = pd.Index(s1.entity_id).get_indexer(pairs.s1_id.values)
-    ib = pd.Index(s23.entity_id).get_indexer(pairs.cand_id.values)
-    assert (ia >= 0).all() and (ib >= 0).all()
-    colsA = [s1[c].values for c in FIELDS]
-    colsB = [s23[c].values for c in FIELDS]
-    X = np.empty((len(pairs), len(FEAT_NAMES)), dtype=np.float32)
-    block, step = 4_000_000, 20000
-    t = time.time()
-    with Pool(config.N_JOBS, initializer=_init, initargs=(idf,)) as pool:
-        for s in range(0, len(pairs), block):
-            a_idx, b_idx = ia[s:s + block], ib[s:s + block]
-            A = list(zip(*[c[a_idx] for c in colsA]))
-            B = list(zip(*[c[b_idx] for c in colsB]))
-            jobs = [(A[i:i + step], B[i:i + step]) for i in range(0, len(A), step)]
-            X[s:s + len(A)] = np.vstack(pool.map(_chunk, jobs, chunksize=1))
-            print(f"    features {s + len(A):,}/{len(pairs):,} ({time.time() - t:.0f}s)", flush=True)
-    out = pairs.reset_index(drop=True).copy()
-    for j, n in enumerate(FEAT_NAMES):
-        out[n] = X[:, j]
-    del X
-    out["is_s3"] = out.cand_id.str.startswith("S3").astype(np.int8)
-    add_group_features(out)
-    return out
+def make_pool(idf: dict) -> Pool:
+    return Pool(config.N_JOBS, initializer=_init, initargs=(idf,))
+
+
+def pair_features(pool: Pool, ia, ib, colsA, colsB, step=20000) -> np.ndarray:
+    """Pairwise features of (s1 row ia[k], s23 row ib[k]) -> float32 (len(ia), len(FEAT_NAMES)).
+    colsA / colsB: the FIELDS columns of s1 / s23 as arrays."""
+    A = list(zip(*[c[ia] for c in colsA]))
+    B = list(zip(*[c[ib] for c in colsB]))
+    jobs = [(A[i:i + step], B[i:i + step]) for i in range(0, len(A), step)]
+    return np.vstack(pool.map(_chunk, jobs, chunksize=1))
+
+
+# pairwise features read by add_group_features (besides blk_score / emb_cos from the pairs table)
+GROUP_INPUTS = ["n_tset", "cc_jw", "a_tset", "num_jacc"]
 
 
 def add_group_features(df: pd.DataFrame) -> None:
     """Competition features: how this pair compares with other pairs of the same S1 / same candidate."""
-    df["pair_sim"] = (df.n_tset + df.cc_jw) / 2 + np.where(df.a_tset >= 0, df.a_tset, 50) + \
-        np.where(df.num_jacc >= 0, df.num_jacc * 100, 30)
-    df["_k1"] = pd.factorize(df.s1_id)[0]
-    df["_k2"] = pd.factorize(df.cand_id)[0]
+    df["pair_sim"] = ((df.n_tset + df.cc_jw) / 2 + np.where(df.a_tset >= 0, df.a_tset, 50) +
+                      np.where(df.num_jacc >= 0, df.num_jacc * 100, 30)).astype(np.float32)
     extra = [c for c in ("emb_cos",) if c in df]
-    for key, tag in (("_k1", "s1"), ("_k2", "cd")):
+    for key, tag in (("i1", "s1"), ("i2", "cd")):
         g = df.groupby(key, sort=False)
         df[f"{tag}_n"] = g[key].transform("size").astype(np.int16)
         for col in ["pair_sim", "blk_score", "n_tset", "a_tset"] + extra:
             mx = g[col].transform("max")
-            df[f"{tag}_{col}_gap"] = df[col] - mx
+            df[f"{tag}_{col}_gap"] = (df[col] - mx).astype(np.float32)
             df[f"{tag}_{col}_rank"] = g[col].rank(ascending=False, method="min").astype(np.float32)
     # second-best gap for candidate: margin of this pair over the best *other* S1
-    df["cd_pair_sim_2nd_gap"] = _gap_to_best_other(df, "_k2", "pair_sim")
-    df["s1_pair_sim_2nd_gap"] = _gap_to_best_other(df, "_k1", "pair_sim")
+    df["cd_pair_sim_2nd_gap"] = _gap_to_best_other(df, "i2", "pair_sim")
+    df["s1_pair_sim_2nd_gap"] = _gap_to_best_other(df, "i1", "pair_sim")
     for c in extra:
-        df[f"cd_{c}_2nd_gap"] = _gap_to_best_other(df, "_k2", c)
-    df.drop(columns=["_k1", "_k2"], inplace=True)
+        df[f"cd_{c}_2nd_gap"] = _gap_to_best_other(df, "i2", c)
 
 
 def _gap_to_best_other(df, key, col):
@@ -179,4 +165,5 @@ def _gap_to_best_other(df, key, col):
     tmp["r"] = g.rank(ascending=False, method="first")
     second = tmp[tmp.r == 2].set_index(key)[col]
     sec = df[key].map(second).fillna(-1e3).values
-    return np.where(df[col].values >= top1.values, df[col].values - sec, df[col].values - top1.values)
+    v = df[col].values
+    return np.where(v >= top1.values, v - sec, v - top1.values).astype(np.float32)

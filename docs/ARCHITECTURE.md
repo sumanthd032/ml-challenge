@@ -46,6 +46,7 @@
 | `decide.py` | assignment + expected-F decision |
 | `metrics.py` | macro F0.5 re-implementation, blocking recall |
 | `predict.py` | test inference and output writing |
+| `store.py` | resumable, sharded feature store (pairs, pairwise features, competition features) |
 
 ## Scale notes
 * 27M records are normalized in ~6 min on 32 processes.

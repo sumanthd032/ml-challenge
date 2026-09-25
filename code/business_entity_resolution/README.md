@@ -19,7 +19,7 @@ By default the code expects the challenge folder next to `code/`:
 <root>/code/business_entity_resolution/src/*.py
 ```
 Override with environment variables: `BER_DATA` (dataset dir), `BER_ARTIFACTS` (intermediate files,
-~60 GB), `BER_OUTPUT` (final TSVs).
+~35 GB), `BER_FEATS` (feature tables and scores, ~30 GB; defaults to `BER_ARTIFACTS`), `BER_OUTPUT` (final TSVs).
 
 ## Run end-to-end (from `src/`)
 ```bash
@@ -32,6 +32,10 @@ python embed.py knn --split train       # 4b. encode + exact GPU kNN            
 python embed.py knn --split test
 python train.py --tag v1                # 5. features + LightGBM + validation report
 python predict.py --model lgb_v1.txt    # 6. test features, scoring, decision, outputs
+```
+The feature stage of steps 5 and 6 checkpoints to `BER_FEATS/<split>_store/` (see `store.py`). After a crash,
+rerun the same command and it continues from the last finished shard. Delete the store folder to rebuild it from scratch.
+```bash
 python ../../../student_resource/utils/validate_submission.py \
     --matching ../../../output/matching_results.tsv \
     --candidate ../../../output/candidate_pairs.tsv --test-dir ../../../student_resource/dataset/test

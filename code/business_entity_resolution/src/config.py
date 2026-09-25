@@ -7,7 +7,9 @@ PROJECT_DIR = SRC_DIR.parent                                   # code/business_e
 DATA_DIR = Path(os.environ.get("BER_DATA", PROJECT_DIR.parent.parent / "student_resource" / "dataset"))
 ART_DIR = Path(os.environ.get("BER_ARTIFACTS", PROJECT_DIR.parent.parent / "artifacts"))
 OUT_DIR = Path(os.environ.get("BER_OUTPUT", PROJECT_DIR.parent.parent / "output"))
+FEAT_DIR = Path(os.environ.get("BER_FEATS", ART_DIR))        # large feature tables (tens of GB)
 ART_DIR.mkdir(parents=True, exist_ok=True)
+FEAT_DIR.mkdir(parents=True, exist_ok=True)
 OUT_DIR.mkdir(parents=True, exist_ok=True)
 
 N_JOBS = int(os.environ.get("BER_JOBS", max(1, (os.cpu_count() or 4) - 4)))
