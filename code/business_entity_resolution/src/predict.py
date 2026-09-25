@@ -2,7 +2,7 @@
 
 Features come from the resumable store (store.py): re-running after a crash continues where it stopped.
 
-Usage: python predict.py --model lgb_v1.txt [--alpha 1.0 --min-p 0.05]
+Usage: python predict.py --model lgb_v1.txt [--thr 0.7 | --alpha 1.0 --min-p 0.05]
 Writes OUT_DIR/matching_results.tsv and OUT_DIR/candidate_pairs.tsv.
 """
 import argparse
@@ -38,6 +38,8 @@ def main():
     ap.add_argument("--model", default="lgb_v1.txt")
     ap.add_argument("--alpha", type=float, default=1.0)
     ap.add_argument("--min-p", type=float, default=0.05)
+    ap.add_argument("--thr", type=float, default=None,
+                    help="flat probability threshold instead of expected-F0.5 selection")
     args = ap.parse_args()
     t = time.time()
     s1, s23 = load_split("test")
@@ -54,7 +56,10 @@ def main():
     scored = pd.DataFrame({"s1_id": pairs.i1.values, "cand_id": pairs.i2.values, "p": p})
     scored.to_parquet(config.FEAT_DIR / f"test_scores_{args.model.removesuffix('.txt')}.parquet", index=False)
     del pairs
-    sel = expected_f_select(scored, alpha=args.alpha, min_p=args.min_p)
+    if args.thr is not None:
+        sel = expected_f_select(scored, mode="thr", thr=args.thr, alpha=1.0)
+    else:
+        sel = expected_f_select(scored, alpha=args.alpha, min_p=args.min_p)
     write_lists(scored.s1_id.values, scored.cand_id.values, s1, s23, "candidate_entity_ids",
                 config.OUT_DIR / "candidate_pairs.tsv")
     res = write_lists(sel.s1_id.values, sel.cand_id.values, s1, s23, "matched_entity_ids",
