@@ -208,7 +208,7 @@ def ce_pairs_nn(n_neg=2, k_nn=5, p1_new=0.9, type_filter=False, pairs_name="pseu
     torch.cuda.empty_cache()
 
 
-def assemble(iu_scores, iu_thr, fr_scores, fr_thr, out, compete_w=1.0):
+def assemble(iu_scores, iu_thr, fr_scores, fr_thr, out, iu_compete=1.0, fr_compete=1.0):
     """India/US from the full-test score file, France from the testfr one; ids mapped back to the test split."""
     from decide import compete, expected_f_select
     from predict import write_lists
@@ -216,9 +216,9 @@ def assemble(iu_scores, iu_thr, fr_scores, fr_thr, out, compete_w=1.0):
     f1, f23 = load_split(SPLIT)
     sc = pd.read_parquet(config.FEAT_DIR / iu_scores, columns=["s1_id", "cand_id", "p"])
     sc = sc[t1.country.values[sc.s1_id.values] != COUNTRY]
-    sel_iu = expected_f_select(compete(sc, compete_w), mode="thr", thr=iu_thr)
+    sel_iu = expected_f_select(compete(sc, iu_compete), mode="thr", thr=iu_thr)
     fr = pd.read_parquet(config.FEAT_DIR / fr_scores, columns=["s1_id", "cand_id", "p"])
-    sel_fr = expected_f_select(compete(fr, compete_w), mode="thr", thr=fr_thr)
+    sel_fr = expected_f_select(compete(fr, fr_compete), mode="thr", thr=fr_thr)
     i1 = pd.Index(t1.entity_id).get_indexer(f1.entity_id.values[sel_fr.s1_id.values])
     i2 = pd.Index(t23.entity_id).get_indexer(f23.entity_id.values[sel_fr.cand_id.values])
     sel = pd.DataFrame({"s1_id": np.concatenate([sel_iu.s1_id.values, i1]),
@@ -263,8 +263,11 @@ if __name__ == "__main__":
     ap.add_argument("--fr-scores", default="testfr_scores2_v1cex.parquet")
     ap.add_argument("--fr-thr", type=float, default=0.85)
     ap.add_argument("--out", default="variants/matching_results_fradapt.tsv")
+    ap.add_argument("--iu-compete", type=float, default=1.0)
+    ap.add_argument("--fr-compete", type=float, default=1.0)
+    ap.add_argument("--cand-out", default="candidate_pairs_fa.tsv")
     a = ap.parse_args()
     {"split": make_split, "renorm": renorm, "pseudo": pseudo, "pseudo2": pseudo2, "stage1": stage1,
      "ce_pairs": ce_pairs, "ce_pairs_nn": ce_pairs_nn, "ce_pairs_nn2": lambda: ce_pairs_nn(pairs_name="pseudo2_pairs"),
-     "assemble": lambda: assemble(a.iu_scores, a.iu_thr, a.fr_scores, a.fr_thr, a.out),
-     "candidates": candidates_file}[a.cmd]()
+     "assemble": lambda: assemble(a.iu_scores, a.iu_thr, a.fr_scores, a.fr_thr, a.out, a.iu_compete, a.fr_compete),
+     "candidates": lambda: candidates_file(out=a.cand_out)}[a.cmd]()

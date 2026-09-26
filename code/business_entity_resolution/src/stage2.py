@@ -195,14 +195,15 @@ def rescored(sc, df, p2):
     return out
 
 
-def model_tag_of(tag, use_ce, ce2, extra, dens=False):
-    return tag + ("ce" if use_ce else "") + (ce2 or "") + ("x" if extra else "") + ("d" if dens else "")
+def model_tag_of(tag, use_ce, ce2, extra, dens=False, noghost=False):
+    return tag + ("ce" if use_ce else "") + (ce2 or "") + ("x" if extra else "") + ("d" if dens else "") + \
+        ("g" if noghost else "")
 
 
-def fit(tag, rounds, use_ce=False, ce2=None, extra=False, dens=False):
+def fit(tag, rounds, use_ce=False, ce2=None, extra=False, dens=False, noghost=False):
     from twin import TWIN_NAMES
     feats = FEATS + (CE_FEATS if use_ce else []) + (CE2_FEATS if ce2 else []) +         (NAME_FEATS + ["tw_" + n for n in TWIN_NAMES] if extra else []) + (DENS_FEATS if dens else [])
-    out_tag = model_tag_of(tag, use_ce, ce2, extra, dens)
+    out_tag = model_tag_of(tag, use_ce, ce2, extra, dens, noghost)
     s1, s23 = load_split("train")
     role = s1.entity_id.map(config.s1_role).values
     from train import truth_rows
@@ -210,6 +211,15 @@ def fit(tag, rounds, use_ce=False, ce2=None, extra=False, dens=False):
     truth_va = truth[role[truth.s1_id.values] == "valid"]
     va_ids = np.flatnonzero(role == "valid")
     sc = pd.read_parquet(config.FEAT_DIR / f"val_scores_{tag}.parquet")
+    if noghost:
+        # D-020: records owned by ghost S1s are true variants of an S1 absent from the pool. The test has none
+        # (its no-address rates match address-bearing distractors only), so as negatives they only teach stage 2
+        # to distrust pairs that look exactly like true matches.
+        owner_role = np.full(len(s23), "", dtype=object)
+        owner_role[truth.cand_id.values] = role[truth.s1_id.values]
+        drop = owner_role[sc.cand_id.values] == "ghost"
+        print(f"  [stage2] noghost: dropping {int(drop.sum()):,} of {len(sc):,} val rows (ghost-owned records)", flush=True)
+        sc = sc[~drop].reset_index(drop=True)
     emb = np.load(config.ART_DIR / "train_emb_s23.npy", mmap_mode="r")
     df = context_features(sc, s23, emb)
     if use_ce:
@@ -249,7 +259,8 @@ def fit(tag, rounds, use_ce=False, ce2=None, extra=False, dens=False):
     json.dump({"results": res, "iters": iters, "final_iter": n_iter}, open(config.ART_DIR / f"stage2_report_{out_tag}.json", "w"), indent=1)
 
 
-def apply(tag, use_ce=False, ce2=None, extra=False, n_chunks=12, split="test", ce_sfx="", dens=False):
+def apply(tag, use_ce=False, ce2=None, extra=False, n_chunks=12, split="test", ce_sfx="", dens=False,
+          noghost=False):
     """Test re-scoring in chunks of whole S1s (all context is within-S1, so chunking is exact).
 
     Each chunk's stage-2 probabilities are checkpointed to FEAT_DIR/stage2_<split>_parts/, so a machine reset
@@ -257,7 +268,7 @@ def apply(tag, use_ce=False, ce2=None, extra=False, n_chunks=12, split="test", c
     split: 'test' or a test subset such as 'testfr' (France only, D-018).
     """
     import os
-    model_tag = model_tag_of(tag, use_ce, ce2, extra, dens)
+    model_tag = model_tag_of(tag, use_ce, ce2, extra, dens, noghost)
     t = time.time()
     s1, s23 = load_split(split)
     codes = name_codes(s1, s23, np.ones(len(s1), dtype=bool)) if extra else None
@@ -325,11 +336,13 @@ def main():
     ap.add_argument("--split", default="test", help="apply: test split name (test, or a subset like testfr)")
     ap.add_argument("--ce-sfx", default="", help="apply: read ce_scores_<split><sfx>.parquet (e.g. _fr)")
     ap.add_argument("--dens", action="store_true", help="add neighbourhood-density + pair-type features (D-018)")
+    ap.add_argument("--noghost", action="store_true", help="fit without ghost-owned val records (D-020)")
     args = ap.parse_args()
     if args.cmd == "fit":
-        fit(args.tag, args.rounds, args.ce, args.ce2, args.x, args.dens)
+        fit(args.tag, args.rounds, args.ce, args.ce2, args.x, args.dens, args.noghost)
     else:
-        apply(args.tag, args.ce, args.ce2, args.x, split=args.split, ce_sfx=args.ce_sfx, dens=args.dens)
+        apply(args.tag, args.ce, args.ce2, args.x, split=args.split, ce_sfx=args.ce_sfx, dens=args.dens,
+              noghost=args.noghost)
 
 
 if __name__ == "__main__":
