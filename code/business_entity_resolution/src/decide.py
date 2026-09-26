@@ -12,6 +12,19 @@ import numpy as np
 import pandas as pd
 
 
+def compete(scored: pd.DataFrame, w: float = 1.0) -> pd.DataFrame:
+    """Candidate-side competition (D-017). Each S2/S3 record belongs to at most one S1, so with pairwise odds
+    o_i = p_i / (1 - p_i) of the S1s competing for one candidate, P(candidate belongs to S1 i) = o_i / (1 + sum_j o_j).
+    Pair scores come from models that see each pair alone (stage 2, cross-encoders); this puts back the exclusivity.
+    w scales the rivals' odds (0 = off, 1 = full)."""
+    p = scored.p.values.astype(np.float64).clip(1e-6, 1 - 1e-6)
+    o = p / (1 - p)
+    tot = pd.Series(o).groupby(scored.cand_id.values).transform("sum").values
+    out = scored.copy()
+    out["p"] = o / (1 + o + w * (tot - o))
+    return out
+
+
 def assign_best_s1(scored: pd.DataFrame) -> pd.DataFrame:
     """Keep, for each candidate id, only its best-scoring S1 pair."""
     idx = scored.groupby("cand_id").p.idxmax()

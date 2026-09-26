@@ -15,7 +15,7 @@ import pandas as pd
 
 import config
 from data import load_split
-from decide import expected_f_select
+from decide import compete, expected_f_select
 from predict import write_lists
 
 
@@ -24,6 +24,7 @@ def main():
     ap.add_argument("--spec", nargs="+", required=True, help="Country=scores.parquet:thr")
     ap.add_argument("--scores-dir", default=None)
     ap.add_argument("--out", required=True)
+    ap.add_argument("--compete", type=float, default=0.0, help="candidate competition weight (decide.compete, D-017)")
     a = ap.parse_args()
     sdir = Path(a.scores_dir) if a.scores_dir else config.FEAT_DIR
 
@@ -45,7 +46,10 @@ def main():
         for c, (fc, thr) in spec.items():
             if fc != f:
                 continue
-            sel = expected_f_select(scored[cty == c], mode="thr", thr=thr)
+            part = scored[cty == c]
+            if a.compete:
+                part = compete(part, a.compete)
+            sel = expected_f_select(part, mode="thr", thr=thr)
             parts.append(sel)
             stats[c] = {"scores": f, "thr": thr, "pairs": len(sel), "pairs_per_s1": round(len(sel) / (country == c).sum(), 4)}
         del scored
