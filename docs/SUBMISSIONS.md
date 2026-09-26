@@ -1,6 +1,6 @@
-# Submission & Experiment History
+﻿# Submission & Experiment History
 
-Leaderboard limit: 5 submissions/day, 25–27 Sep 2026. Each row links to a git commit so any
+Leaderboard limit: 5 submissions/day, 25â€“27 Sep 2026. Each row links to a git commit so any
 submission can be reproduced (`git checkout <commit>` + README steps).
 
 ## Experiments (local validation, macro F0.5)
@@ -12,6 +12,8 @@ submission can be reproduced (`git checkout <commit>` + README steps).
 | v1-cex | 2026-09-26 | 50703de | v1-ce + stage-2 name-ambiguity (8) and twin (22) features (D-013), thr 0.7 | 0.9956 | 0.9889 | 0.9972 | 0.9725 | thr 0.6: 0.9888, 0.8: 0.9888. test: 5.86M predicted, 3.38/S1, 94.3% S1 with a match; validator PASS; file output/variants/matching_results_cex_thr70.tsv |
 | v1-cel12x | 2026-09-26 | 2d94a38 | v1-cex + second cross-encoder (ms-marco-MiniLM-L12 fine-tuned 1 epoch on all 11.9M fit-S1 pairs, val logloss 0.065 vs 0.070 for L6) as `--ce2 l12`, thr 0.7 | 0.9956 | 0.9896 | 0.9975 | 0.9736 | thr 0.6: 0.9895, 0.8: 0.9894 (+0.0006-0.0007 over v1-cex at every thr). Stage-2 fold logloss 0.0418/0.0422 vs 0.0441/0.0446. Gain importance ce2 0.89, ce 0.05. test: 5.87M predicted, 3.39/S1, 94.3% S1 with a match; validator PASS; file output/variants/matching_results_cel12x_thr70.tsv |
 | v1-cel12x-cexFR | 2026-09-26 | 07b680d | per-country blend (D-015): v1-cel12x for India/US S1s, v1-cex for France S1s (`blend_country.py`), no retraining | 0.9956 | 0.9896 | 0.9975 | 0.9736 | val = v1-cel12x (val has no France). Expected public ~0.9817 (#3 0.981132 + India/US gain ~0.0006 seen in #4). test: 5.86M predicted, 259,452 France rows from cex; validator PASS; file output/variants/matching_results_cel12x_cexFR_thr70.tsv |
+| v1-mixFR85 | 2026-09-26 | 8984e21 | India/US v1-cel12x thr 0.7, France v1-cex thr 0.85 (D-016) | 0.9956 | 0.9896 | 0.9975 | 0.9736 | France 3.33 pairs/S1 (vs 3.41 at 0.7); validator PASS; file output/variants/matching_results_cel12x_cexFR85.tsv |
+| v1-mixFR95 | 2026-09-26 | 8984e21 | India/US v1-cel12x thr 0.7, France v1-cex thr 0.95 (D-016) | 0.9956 | 0.9896 | 0.9975 | 0.9736 | France 3.22 pairs/S1; validator PASS; file output/variants/matching_results_cel12x_cexFR95.tsv |
 
 ## Leaderboard submissions
 | # | date | commit | experiment id | public F0.5 | notes |
