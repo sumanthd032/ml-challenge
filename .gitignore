@@ -2,10 +2,13 @@
 *.zip
 student_resource/dataset/
 artifacts/
-output/*.tsv
+output/**/*.tsv
 __pycache__/
 *.pyc
 *.parquet
 *.npy
 *.lgb
 .ipynb_checkpoints/
+
+# git bundle backups
+*.bundle
