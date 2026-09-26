@@ -123,24 +123,39 @@ def _name_tokens(s: str) -> list:
     return [LEGAL_CANON.get(t, t) for t in toks]
 
 
-def norm_name(raw: str) -> dict:
+_DOTTED = re.compile(r"\b(?:[a-z]\.\s?){2,}(?:[a-z]\b\.?)?")
+
+
+def _undot(s: str) -> str:
+    """'s.a.r.l.' -> 'sarl', 'e.u.r.l' -> 'eurl', 's.a.' -> 'sa' (dotted acronyms / legal forms)."""
+    return _DOTTED.sub(lambda m: re.sub(r"[.\s]", "", m.group()) + " ", s)
+
+
+def norm_name(raw: str, fr_fix: bool = False, drop_country: bool = False) -> dict:
     """Return normalized name variants.
 
     name   : all canonical tokens (legal forms canonicalized)
     core   : identity tokens only (legal forms, honorifics, stop words removed)
     concat : core tokens joined without spaces (to match 'firstave.com'-style names)
     alt    : core of the alternative/trade name after dba/t/a/| if present, else ''
+    fr_fix : France fix (D-019): dotted legal forms collapsed ('S.A.R.L.' was split into stray letters that
+             stayed in the core). Off by default so India/US normalization is unchanged.
+    drop_country: also drop 'france' from the core like 'india'. Tried and rejected (D-019): '(France)' is part of
+             the name's identity (exact no-address copies lost their match, 'franceconcept.com' no longer matched).
     """
     s = basic_clean(raw)
+    if fr_fix:
+        s = _undot(s)
     parts = _ALT_SPLIT.split(f" {s} ")
     toks = _name_tokens(s)
-    core = [t for t in toks if t not in LEGAL_TOKENS]
+    legal = LEGAL_TOKENS | {"france"} if drop_country else LEGAL_TOKENS
+    core = [t for t in toks if t not in legal]
     if not core:
         core = toks
     alt = ""
     if len(parts) > 1:
-        alt_toks = [t for t in _name_tokens(parts[-1]) if t not in LEGAL_TOKENS]
-        first = [t for t in _name_tokens(parts[0]) if t not in LEGAL_TOKENS]
+        alt_toks = [t for t in _name_tokens(parts[-1]) if t not in legal]
+        first = [t for t in _name_tokens(parts[0]) if t not in legal]
         # keep the part that is NOT the main core as the alternative; main core = first part
         core = first or core
         alt = " ".join(alt_toks)
@@ -225,14 +240,37 @@ ADDR_STOP = {"null", "none", "na", "n", "a", "nan", "unit", "apt", "apartment", 
 _NUM = re.compile(r"\d+")
 
 
-def norm_address(raw: str) -> dict:
+# French departements -> region name (D-019). S1 records carry the region ("Hauts-de-France"), S2/S3 often the
+# departement ("Nord", "Pas-de-Calais", "Gironde", "Loire-Atlantique"), so the state never matched.
+FR_DEPTS = {d: "hauts de france" for d in ("nord", "pas de calais", "somme", "aisne", "oise")}
+FR_DEPTS.update({d: "nouvelle aquitaine" for d in (
+    "gironde", "landes", "dordogne", "lot et garonne", "pyrenees atlantiques", "charente", "charente maritime",
+    "deux sevres", "vienne", "haute vienne", "creuse", "correze")})
+FR_DEPTS.update({d: "pays de la loire" for d in ("loire atlantique", "maine et loire", "mayenne", "sarthe", "vendee")})
+
+
+def _fr_depts(raw: str) -> str:
+    """Replace a comma component that is a whole departement name by its region name."""
+    parts = raw.split(",")
+    out = []
+    for p in parts:
+        k = re.sub(r"\s+", " ", _NON_WORD.sub(" ", basic_clean(p))).strip()
+        out.append(" " + FR_DEPTS[k] if k in FR_DEPTS else p)
+    return ",".join(out)
+
+
+def norm_address(raw: str, fr_fix: bool = False) -> dict:
     """Return normalized address pieces.
 
     addr  : canonical token string (states replaced by codes, abbreviations canonicalized)
     toks  : set-like space-joined word tokens without numbers/states/stop words
     nums  : space-joined numbers (leading zeros stripped) in order of appearance
     state : state/region code if recognized ('' otherwise)
+    fr_fix: France fixes (D-019): departements mapped to their region, and no 2-letter US/Indian state fallback
+            (it read the articles 'de' / 'la' as Delaware / Louisiana). Off by default.
     """
+    if fr_fix:
+        raw = _fr_depts(raw)
     s = basic_clean(raw)
     if has_indic(s):
         s = translit(s)
@@ -258,7 +296,7 @@ def norm_address(raw: str) -> dict:
             if len(alpha) >= 2 and alpha not in ADDR_STOP:
                 words.append(alpha)
     # 2-letter state code at the end without full name (e.g. ", TX" or ", MH")
-    if not state:
+    if not state and not fr_fix:
         for t in reversed(toks[-3:]):
             if len(t) == 2 and t in STATE_CODES:
                 state = t

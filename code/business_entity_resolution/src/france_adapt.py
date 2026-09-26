@@ -28,8 +28,39 @@ import pyarrow.parquet as pq
 import config
 from data import load_split
 
+import os
+
 COUNTRY = "France"
-SPLIT = "testfr"
+SPLIT = os.environ.get("BER_FR_SPLIT", "testfr")      # testfr2 = France rows re-normalized with fr_fix (D-019)
+
+
+def _renorm_chunk(rows):
+    from normalize import norm_address, norm_name
+    from translit import has_indic
+    out = []
+    for eid, name, addr, country in rows:
+        n = norm_name(name, fr_fix=True)
+        a = norm_address(addr, fr_fix=True)
+        out.append((eid, country, name, addr, n["name"], n["core"], n["concat"], n["alt"],
+                    a["addr"], a["toks"], a["nums"], a["state"], int(has_indic(name))))
+    return out
+
+
+def renorm():
+    """France rows of the raw test sources normalized with the France fixes, written as split SPLIT (same row
+    order as 'testfr', so pseudo-pair positions carry over)."""
+    from multiprocessing import Pool
+    from preprocess import COLS, read_source
+    with Pool(config.N_JOBS) as pool:
+        for s in (1, 2, 3):
+            df = read_source("test", s)
+            df = df[df.country == COUNTRY]
+            rows = list(zip(df.entity_id, df.business_name, df.business_address, df.country))
+            res = [r for part in pool.imap(_renorm_chunk, [rows[i:i + 20000] for i in range(0, len(rows), 20000)])
+                   for r in part]
+            out = pd.DataFrame(res, columns=COLS)
+            out.to_csv(config.norm_path(SPLIT, s), sep="\t", index=False, quoting=csv.QUOTE_NONE, escapechar="\\")
+            print(f"{SPLIT} s{s}: {len(out):,} rows (state set: {(out.state != '').mean():.3f})", flush=True)
 
 
 def make_split():
@@ -67,6 +98,24 @@ def pseudo(p2=0.995, p1=0.98):
     out = pd.DataFrame({"i1": r1.astype(np.int32), "i2": r2.astype(np.int32)})
     out.to_parquet(config.FEAT_DIR / f"{SPLIT}_pseudo_pairs.parquet", index=False)
     print(f"pseudo pairs: {len(out):,} over {out.i1.nunique():,} S1s ({len(out) / fr.sum():.3f} of France pairs)")
+
+
+def pseudo2(files=("scores2_v1cexd.parquet", "fr3_scores2_v1cexd.parquet"), p2=0.99, p1=0.9):
+    """Round-2 pseudo positives from this split's own adapted pipeline (D-019): both stage-2 variants >= p2 and the
+    adapted stage 1 >= p1, one S1 per candidate. Richer than round 1 (which came from the English-only models):
+    acronyms, domains, dotted legal forms and brand names at the same address are now confident."""
+    a = pd.read_parquet(config.FEAT_DIR / f"{SPLIT}_{files[0]}", columns=["s1_id", "cand_id", "p"])
+    b = pd.read_parquet(config.FEAT_DIR / f"{SPLIT}_{files[1]}", columns=["p"]).p.values
+    c = pd.read_parquet(config.FEAT_DIR / f"{SPLIT}_scores_lgb_v1.parquet", columns=["p"]).p.values
+    m = (a.p.values >= p2) & (b >= p2) & (c >= p1)
+    sel = a[m]
+    sel = sel[~sel.cand_id.duplicated(keep=False)]
+    out = pd.DataFrame({"i1": sel.s1_id.values.astype(np.int32), "i2": sel.cand_id.values.astype(np.int32)})
+    old = pd.read_parquet(config.FEAT_DIR / f"{SPLIT}_pseudo_pairs.parquet")
+    n2 = np.int64(10 ** 9)
+    new = ~np.isin(out.i1.values.astype(np.int64) * n2 + out.i2.values, old.i1.values.astype(np.int64) * n2 + old.i2.values)
+    out.to_parquet(config.FEAT_DIR / f"{SPLIT}_pseudo2_pairs.parquet", index=False)
+    print(f"round-2 pseudo pairs: {len(out):,} ({new.sum():,} not in round 1; round 1 had {len(old):,})")
 
 
 def stage1(model="lgb_v1.txt"):
@@ -109,7 +158,7 @@ def ce_pairs(neg_p=0.02, max_neg_per_pos=2.0):
           f"neg stage-1 p median {neg.p.median():.3f}, share >= 0.5: {(neg.p >= 0.5).mean():.3f})")
 
 
-def ce_pairs_nn(n_neg=2, k_nn=5, p1_new=0.9, type_filter=False):
+def ce_pairs_nn(n_neg=2, k_nn=5, p1_new=0.9, type_filter=False, pairs_name="pseudo_pairs"):
     """Cross-encoder self-training set with near-twin negatives (D-018).
 
     Positives: pseudo pairs (A, c) that the adapted stage 1 also accepts (p >= p1_new) and whose edit looks like
@@ -120,7 +169,7 @@ def ce_pairs_nn(n_neg=2, k_nn=5, p1_new=0.9, type_filter=False):
     import pairtype as pt
     from embed import gpu_topk
     s1, s23 = load_split(SPLIT)
-    pos = pd.read_parquet(config.FEAT_DIR / f"{SPLIT}_pseudo_pairs.parquet")
+    pos = pd.read_parquet(config.FEAT_DIR / f"{SPLIT}_{pairs_name}.parquet")
     sc = pd.read_parquet(config.FEAT_DIR / f"{SPLIT}_scores_lgb_v1.parquet")
     n2 = np.int64(len(s23))
     k_sc = sc.s1_id.values.astype(np.int64) * n2 + sc.cand_id.values
@@ -207,13 +256,15 @@ def candidates_file(src="candidate_pairs.tsv", out="candidate_pairs_fa.tsv"):
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
-    ap.add_argument("cmd", choices=["split", "pseudo", "stage1", "ce_pairs", "ce_pairs_nn", "assemble", "candidates"])
+    ap.add_argument("cmd", choices=["split", "renorm", "pseudo", "pseudo2", "stage1", "ce_pairs", "ce_pairs_nn",
+                                    "ce_pairs_nn2", "assemble", "candidates"])
     ap.add_argument("--iu-scores", default="test_scores2_v1cel12x.parquet")
     ap.add_argument("--iu-thr", type=float, default=0.7)
     ap.add_argument("--fr-scores", default="testfr_scores2_v1cex.parquet")
     ap.add_argument("--fr-thr", type=float, default=0.85)
     ap.add_argument("--out", default="variants/matching_results_fradapt.tsv")
     a = ap.parse_args()
-    {"split": make_split, "pseudo": pseudo, "stage1": stage1, "ce_pairs": ce_pairs, "ce_pairs_nn": ce_pairs_nn,
+    {"split": make_split, "renorm": renorm, "pseudo": pseudo, "pseudo2": pseudo2, "stage1": stage1,
+     "ce_pairs": ce_pairs, "ce_pairs_nn": ce_pairs_nn, "ce_pairs_nn2": lambda: ce_pairs_nn(pairs_name="pseudo2_pairs"),
      "assemble": lambda: assemble(a.iu_scores, a.iu_thr, a.fr_scores, a.fr_thr, a.out),
      "candidates": candidates_file}[a.cmd]()
