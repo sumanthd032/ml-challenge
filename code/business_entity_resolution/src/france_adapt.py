@@ -1,0 +1,204 @@
+"""France-only test pipeline with a France-adapted bi-encoder (D-018).
+
+The stage-1 model takes 77% of its gain from two bi-encoder features (emb_rank_rev, cd_emb_cos_2nd_gap). The
+bi-encoder is an English MiniLM fine-tuned on India/US pairs only; on French records it packs businesses close
+together (obvious France pairs: 2nd-best gap 0.23 vs 0.37-0.43 India/US, 2.2 SD lower), so stage 1 cannot separate
+true matches from twins there. This script reruns the test pipeline on France alone ('testfr' split) with the
+bi-encoder adapted to French by contrastive fine-tuning on near-certain France matches (self-training; no labels,
+no external data) and with the feature IDF put on the same scale as in training (BER_IDF_SCALE=2).
+
+  python france_adapt.py split      # testfr_s{1,2,3}_norm.tsv, testfr_cands_A.parquet (France part of pass A)
+  python france_adapt.py pseudo     # FEAT_DIR/testfr_pseudo_pairs.parquet from the current test scores
+  python embed.py finetune_pseudo --split testfr --pairs <FEAT_DIR>/testfr_pseudo_pairs.parquet --model-dir biencoder_fr
+  python embed.py knn --split testfr --model-dir biencoder_fr
+  python france_adapt.py stage1     # feature store + stage-1 scores (BER_IDF_SCALE=2)
+  python crossenc.py score --split testfr ; python crossenc.py score --split testfr --tag l12 --base ...
+  python stage2.py apply --tag v1 --ce --x --split testfr
+  python france_adapt.py assemble --fr-scores testfr_scores2_v1cex.parquet --fr-thr 0.85 --out ...
+"""
+import argparse
+import csv
+import json
+import time
+
+import numpy as np
+import pandas as pd
+import pyarrow.parquet as pq
+
+import config
+from data import load_split
+
+COUNTRY = "France"
+SPLIT = "testfr"
+
+
+def make_split():
+    for s in (1, 2, 3):
+        src = config.norm_path("test", s)
+        df = pd.read_csv(src, sep="\t", dtype=str, keep_default_na=False, quoting=csv.QUOTE_NONE, escapechar="\\")
+        df = df[df.country == COUNTRY]
+        df.to_csv(config.norm_path(SPLIT, s), sep="\t", index=False, quoting=csv.QUOTE_NONE, escapechar="\\")
+        print(f"s{s}: {len(df):,} {COUNTRY} rows", flush=True)
+    s1, _ = load_split(SPLIT)
+    keep = set(s1.entity_id)
+    parts = []
+    for b in pq.ParquetFile(config.ART_DIR / "test_cands_A.parquet").iter_batches(batch_size=8_000_000):
+        d = b.to_pandas()
+        parts.append(d[d.s1_id.isin(keep)])
+    a = pd.concat(parts, ignore_index=True)
+    a.to_parquet(config.ART_DIR / f"{SPLIT}_cands_A.parquet", index=False)
+    print(f"pass A pairs: {len(a):,}")
+
+
+def pseudo(p2=0.995, p1=0.98):
+    """Near-certain France matches: both stage-2 models >= p2 and stage 1 >= p1, one S1 per candidate."""
+    t1, t23 = load_split("test")
+    a = pd.read_parquet(config.FEAT_DIR / "test_scores2_v1cex.parquet", columns=["s1_id", "cand_id", "p"])
+    b = pd.read_parquet(config.FEAT_DIR / "test_scores2_v1cel12x.parquet", columns=["p"]).p.values
+    c = pd.read_parquet(config.FEAT_DIR / "test_scores_lgb_v1.parquet", columns=["p"]).p.values
+    fr = t1.country.values[a.s1_id.values] == COUNTRY
+    m = fr & (a.p.values >= p2) & (b >= p2) & (c >= p1)
+    sel = a[m]
+    sel = sel[~sel.cand_id.duplicated(keep=False)]                 # candidate claimed by one S1 only
+    f1, f23 = load_split(SPLIT)
+    r1 = pd.Index(f1.entity_id).get_indexer(t1.entity_id.values[sel.s1_id.values])
+    r2 = pd.Index(f23.entity_id).get_indexer(t23.entity_id.values[sel.cand_id.values])
+    assert (r1 >= 0).all() and (r2 >= 0).all()
+    out = pd.DataFrame({"i1": r1.astype(np.int32), "i2": r2.astype(np.int32)})
+    out.to_parquet(config.FEAT_DIR / f"{SPLIT}_pseudo_pairs.parquet", index=False)
+    print(f"pseudo pairs: {len(out):,} over {out.i1.nunique():,} S1s ({len(out) / fr.sum():.3f} of France pairs)")
+
+
+def stage1(model="lgb_v1.txt"):
+    import lightgbm as lgb
+    import store
+    t = time.time()
+    s1, s23 = load_split(SPLIT)
+    pairs = store.build(SPLIT, s1, s23)
+    mdl = lgb.Booster(model_file=str(config.ART_DIR / model))
+    cols = mdl.feature_name()
+    s3 = store.s3_flags(s23)
+    p = np.empty(len(pairs), dtype=np.float32)
+    for s in range(0, len(pairs), store.SHARD):
+        X = store.load_rows(SPLIT, pairs, s3, np.arange(s, min(s + store.SHARD, len(pairs))))
+        p[s:s + len(X)] = mdl.predict(X[cols], num_threads=config.N_JOBS)
+    out = pd.DataFrame({"s1_id": pairs.i1.values, "cand_id": pairs.i2.values, "p": p})
+    out.to_parquet(config.FEAT_DIR / f"{SPLIT}_scores_{model.removesuffix('.txt')}.parquet", index=False)
+    print(f"stage 1: {len(out):,} pairs, {int((p >= 0.7).sum()):,} at p >= 0.7 ({time.time() - t:.0f}s)")
+
+
+def ce_pairs(neg_p=0.02, max_neg_per_pos=2.0):
+    """Cross-encoder self-training pairs for France: the pseudo positives, plus hard negatives that need no label:
+    a candidate that is a near-certain match of S1 X is a negative for every other S1 listing it (each record
+    belongs to at most one S1). Negatives are the other S1s' pairs of those candidates with stage-1 p >= neg_p."""
+    pos = pd.read_parquet(config.FEAT_DIR / f"{SPLIT}_pseudo_pairs.parquet")
+    sc = pd.read_parquet(config.FEAT_DIR / f"{SPLIT}_scores_lgb_v1.parquet")
+    owner = pd.Series(pos.i1.values, index=pos.i2.values)
+    m = sc.cand_id.isin(owner.index) & (sc.p.values >= neg_p)
+    neg = sc[m]
+    neg = neg[neg.s1_id.values != owner.reindex(neg.cand_id.values).values]
+    rng = np.random.default_rng(config.SEED)
+    cap = int(max_neg_per_pos * len(pos))
+    if len(neg) > cap:                                   # keep the hardest (highest stage-1 p) first
+        neg = neg.sort_values("p", ascending=False).iloc[:cap]
+    out = pd.concat([pd.DataFrame({"i1": pos.i1.values, "i2": pos.i2.values, "label": 1}),
+                     pd.DataFrame({"i1": neg.s1_id.values, "i2": neg.cand_id.values, "label": 0})], ignore_index=True)
+    out = out.iloc[rng.permutation(len(out))].reset_index(drop=True)
+    out.to_parquet(config.FEAT_DIR / f"{SPLIT}_ce_pairs.parquet", index=False)
+    print(f"ce pairs: {len(out):,} ({(out.label == 1).sum():,} pos, {(out.label == 0).sum():,} neg; "
+          f"neg stage-1 p median {neg.p.median():.3f}, share >= 0.5: {(neg.p >= 0.5).mean():.3f})")
+
+
+def ce_pairs_nn(n_neg=2, k_nn=5, p1_new=0.9):
+    """Cross-encoder self-training set with near-twin negatives (D-018).
+
+    Positives: pseudo pairs (A, c) that the adapted stage 1 also accepts (p >= p1_new) and whose edit looks like
+    generator noise (no swapped name word, no other house number), so the old models' twin errors stay out.
+    Negatives: (B, c) for n_neg of A's k_nn nearest other S1s B in the adapted embedding space; c belongs to A,
+    so (B, c) is certainly false, and B is A's closest look-alike, i.e. the twin the cross-encoder must reject."""
+    import torch
+    import pairtype as pt
+    from embed import gpu_topk
+    s1, s23 = load_split(SPLIT)
+    pos = pd.read_parquet(config.FEAT_DIR / f"{SPLIT}_pseudo_pairs.parquet")
+    sc = pd.read_parquet(config.FEAT_DIR / f"{SPLIT}_scores_lgb_v1.parquet")
+    n2 = np.int64(len(s23))
+    k_sc = sc.s1_id.values.astype(np.int64) * n2 + sc.cand_id.values
+    order = np.argsort(k_sc)
+    k_pos = pos.i1.values.astype(np.int64) * n2 + pos.i2.values
+    j = np.minimum(np.searchsorted(k_sc[order], k_pos), len(order) - 1)
+    p_new = np.where(k_sc[order][j] == k_pos, sc.p.values[order][j], 0.0)
+    ty = pt.pair_types(s1, s23, pos.i1.values, pos.i2.values)
+    keep = (p_new >= p1_new) & (ty[:, 0] != pt.NAME_TYPES.index("swap1")) & (ty[:, 1] != pt.NUM_TYPES.index("diff"))
+    pos = pos[keep].reset_index(drop=True)
+    E1 = np.load(config.ART_DIR / f"{SPLIT}_emb_s1.npy")
+    q, c, _ = gpu_topk(E1, E1, k_nn + 1)
+    nn = pd.DataFrame({"a": q, "b": c})
+    nn = nn[nn.a != nn.b]
+    nn["r"] = nn.groupby("a").cumcount()
+    nn = nn[nn.r < k_nn]
+    rng = np.random.default_rng(config.SEED)
+    pick = rng.integers(0, k_nn, size=(len(pos), n_neg))
+    table = np.full((len(s1), k_nn), -1, dtype=np.int64)
+    table[nn.a.values, nn.r.values] = nn.b.values
+    negB = table[np.repeat(pos.i1.values, n_neg), pick.ravel()]
+    negC = np.repeat(pos.i2.values, n_neg)
+    ok = negB >= 0
+    neg = pd.DataFrame({"i1": negB[ok], "i2": negC[ok], "label": 0})
+    out = pd.concat([pd.DataFrame({"i1": pos.i1.values, "i2": pos.i2.values, "label": 1}), neg], ignore_index=True)
+    out = out.drop_duplicates(["i1", "i2"]).reset_index(drop=True)
+    out = out.iloc[rng.permutation(len(out))].reset_index(drop=True)
+    out.to_parquet(config.FEAT_DIR / f"{SPLIT}_ce_pairs.parquet", index=False)
+    print(f"ce pairs: {len(out):,} ({(out.label == 1).sum():,} pos kept of {len(keep):,}, {(out.label == 0).sum():,} neg)")
+    del E1
+    torch.cuda.empty_cache()
+
+
+def assemble(iu_scores, iu_thr, fr_scores, fr_thr, out, compete_w=1.0):
+    """India/US from the full-test score file, France from the testfr one; ids mapped back to the test split."""
+    from decide import compete, expected_f_select
+    from predict import write_lists
+    t1, t23 = load_split("test")
+    f1, f23 = load_split(SPLIT)
+    sc = pd.read_parquet(config.FEAT_DIR / iu_scores, columns=["s1_id", "cand_id", "p"])
+    sc = sc[t1.country.values[sc.s1_id.values] != COUNTRY]
+    sel_iu = expected_f_select(compete(sc, compete_w), mode="thr", thr=iu_thr)
+    fr = pd.read_parquet(config.FEAT_DIR / fr_scores, columns=["s1_id", "cand_id", "p"])
+    sel_fr = expected_f_select(compete(fr, compete_w), mode="thr", thr=fr_thr)
+    i1 = pd.Index(t1.entity_id).get_indexer(f1.entity_id.values[sel_fr.s1_id.values])
+    i2 = pd.Index(t23.entity_id).get_indexer(f23.entity_id.values[sel_fr.cand_id.values])
+    sel = pd.DataFrame({"s1_id": np.concatenate([sel_iu.s1_id.values, i1]),
+                        "cand_id": np.concatenate([sel_iu.cand_id.values, i2])})
+    res = write_lists(sel.s1_id.values, sel.cand_id.values, t1, t23, "matched_entity_ids", config.OUT_DIR / out)
+    n1 = pd.Series(t1.country.values).value_counts()
+    print(json.dumps({"pairs_iu": len(sel_iu), "pairs_fr": len(sel_fr),
+                      "fr_pairs_per_s1": round(len(sel_fr) / n1[COUNTRY], 4),
+                      "s1_with_match": int((res.matched_entity_ids != "").sum())}, indent=1))
+
+
+def candidates_file(out="candidate_pairs.tsv"):
+    """candidate_pairs.tsv with France candidates from the testfr store (the set its models scored)."""
+    from predict import write_lists
+    t1, t23 = load_split("test")
+    f1, f23 = load_split(SPLIT)
+    a = pd.read_parquet(config.FEAT_DIR / "test_scores_lgb_v1.parquet", columns=["s1_id", "cand_id"])
+    a = a[t1.country.values[a.s1_id.values] != COUNTRY]
+    b = pd.read_parquet(config.FEAT_DIR / f"{SPLIT}_store" / "pairs.parquet", columns=["i1", "i2"])
+    i1 = pd.Index(t1.entity_id).get_indexer(f1.entity_id.values[b.i1.values])
+    i2 = pd.Index(t23.entity_id).get_indexer(f23.entity_id.values[b.i2.values])
+    write_lists(np.concatenate([a.s1_id.values, i1]), np.concatenate([a.cand_id.values, i2]), t1, t23,
+                "candidate_entity_ids", config.OUT_DIR / out)
+
+
+if __name__ == "__main__":
+    ap = argparse.ArgumentParser()
+    ap.add_argument("cmd", choices=["split", "pseudo", "stage1", "ce_pairs", "ce_pairs_nn", "assemble", "candidates"])
+    ap.add_argument("--iu-scores", default="test_scores2_v1cel12x.parquet")
+    ap.add_argument("--iu-thr", type=float, default=0.7)
+    ap.add_argument("--fr-scores", default="testfr_scores2_v1cex.parquet")
+    ap.add_argument("--fr-thr", type=float, default=0.85)
+    ap.add_argument("--out", default="variants/matching_results_fradapt.tsv")
+    a = ap.parse_args()
+    {"split": make_split, "pseudo": pseudo, "stage1": stage1, "ce_pairs": ce_pairs, "ce_pairs_nn": ce_pairs_nn,
+     "assemble": lambda: assemble(a.iu_scores, a.iu_thr, a.fr_scores, a.fr_thr, a.out),
+     "candidates": candidates_file}[a.cmd]()

@@ -160,6 +160,55 @@ def train(max_pairs, bs=256, lr=4e-5, eval_every=1000):
     print(f"saved {CE_DIR} ({time.time() - t:.0f}s)")
 
 
+def train_pseudo(split, pairs_file, init_dir, bs=256, lr=2e-5, epochs=1):
+    """Continue fine-tuning a cross-encoder on self-labelled pairs of a test split (D-018): (i1, i2, label) rows
+    from france_adapt.ce_pairs. Saves to CE_DIR (select it with --tag)."""
+    s1, s23 = load_split(split)
+    t1, t2 = record_text(s1), record_text(s23)
+    tr = pd.read_parquet(pairs_file)
+    A, B, y = t1[tr.i1.values], t2[tr.i2.values], tr.label.values.astype(np.float32)
+    s1v, s23v = load_split("train")
+    va = pd.read_parquet(config.FEAT_DIR / "val_scores_v1.parquet")
+    va = va[va.p >= P_MIN].sample(20_000, random_state=1)
+    vA, vB, vy = record_text(s1v)[va.s1_id.values], record_text(s23v)[va.cand_id.values], va.label.values
+    del s1v, s23v
+    tok = AutoTokenizer.from_pretrained(init_dir)
+    model = AutoModelForSequenceClassification.from_pretrained(init_dir).to(DEV)
+    opt = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=0.01)
+    steps = epochs * math.ceil(len(A) / bs)
+    sched = torch.optim.lr_scheduler.OneCycleLR(opt, max_lr=lr, total_steps=steps, pct_start=0.05,
+                                                anneal_strategy="linear")
+    lossf = torch.nn.BCEWithLogitsLoss()
+
+    def val_ll():
+        pv = predict(model, tok, vA, vB)
+        return -np.mean(vy * np.log(np.clip(pv, 1e-6, 1)) + (1 - vy) * np.log(np.clip(1 - pv, 1e-6, 1)))
+
+    print(f"self-training on {len(A):,} pairs (pos rate {y.mean():.3f}), {steps} steps; "
+          f"India/US val logloss before {val_ll():.4f}", flush=True)
+    t = time.time()
+    step = 0
+    for ep in range(epochs):
+        model.train()
+        perm = np.random.default_rng(ep).permutation(len(A))
+        for j, enc in _batches(A, B, perm, tok, bs):
+            enc = enc.to(DEV)
+            with torch.autocast("cuda", dtype=torch.bfloat16):
+                logit = model(**enc).logits.squeeze(-1)
+            loss = lossf(logit.float(), torch.from_numpy(y[j]).to(DEV))
+            opt.zero_grad(set_to_none=True)
+            loss.backward()
+            torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+            opt.step(); sched.step()
+            step += 1
+            if step % 500 == 0:
+                print(f"step {step}/{steps} loss {loss.item():.4f} ({time.time() - t:.0f}s)", flush=True)
+    print(f"India/US val logloss after {val_ll():.4f}", flush=True)
+    CE_DIR.mkdir(parents=True, exist_ok=True)
+    model.save_pretrained(CE_DIR); tok.save_pretrained(CE_DIR)
+    print(f"saved {CE_DIR} ({time.time() - t:.0f}s)")
+
+
 @torch.no_grad()
 def predict(model, tok, A, B, bs=1024):
     model.eval()
@@ -173,13 +222,13 @@ def predict(model, tok, A, B, bs=1024):
 
 def pruned_pairs(split: str) -> pd.DataFrame:
     """The pruned candidate set: stage-1 pairs with p >= P_MIN (s1_id / cand_id are row positions)."""
-    f = {"val": "val_scores_v1.parquet", "test": "test_scores_lgb_v1.parquet"}[split]
+    f = "val_scores_v1.parquet" if split == "val" else f"{split}_scores_lgb_v1.parquet"
     sc = pd.read_parquet(config.FEAT_DIR / f)
     return sc[sc.p >= P_MIN].reset_index(drop=True)
 
 
 def score(split: str, chunk=1_000_000):
-    s1, s23 = load_split("train" if split == "val" else "test")
+    s1, s23 = load_split("train" if split == "val" else split)
     t1, t2 = record_text(s1), record_text(s23)
     pr = pruned_pairs(split)
     tok = AutoTokenizer.from_pretrained(CE_DIR)
@@ -203,12 +252,16 @@ def score(split: str, chunk=1_000_000):
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
-    ap.add_argument("cmd", choices=["pairs", "train", "score"])
+    ap.add_argument("cmd", choices=["pairs", "train", "train_pseudo", "score"])
     ap.add_argument("--split", default="val")
     ap.add_argument("--max-pairs", type=int, default=6_000_000)
     ap.add_argument("--base", default=BASE)
     ap.add_argument("--tag", default="")
+    ap.add_argument("--pairs", default=None, help="train_pseudo: parquet of (i1, i2, label)")
+    ap.add_argument("--init", default="crossenc", help="train_pseudo: model directory under ARTIFACTS to start from")
+    ap.add_argument("--lr", type=float, default=2e-5)
     args = ap.parse_args()
     set_model(args.base, args.tag)
     {"pairs": build_train_pairs, "train": lambda: train(args.max_pairs),
+     "train_pseudo": lambda: train_pseudo(args.split, args.pairs, config.ART_DIR / args.init, lr=args.lr),
      "score": lambda: score(args.split)}[args.cmd]()

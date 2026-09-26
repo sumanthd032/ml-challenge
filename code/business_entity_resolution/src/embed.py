@@ -58,10 +58,29 @@ def finetune(epochs=1, bs=512, lr=1e-4, max_pairs=1_500_000):
     sub = s23[s23.entity_id.isin(set(gt.cand_id))]
     t2 = dict(zip(sub.entity_id, record_text(sub)))
     A = [t1[x] for x in gt.s1_id]; B = [t2[x] for x in gt.cand_id]
-    s1_of = gt.s1_id.values
-    print(f"fine-tuning on {len(A):,} pairs", flush=True)
-    tok = AutoTokenizer.from_pretrained(BASE)
-    model = Encoder(BASE).to(DEV)
+    _train(A, B, gt.s1_id.values, BASE, MODEL_DIR, epochs, bs, lr)
+
+
+def finetune_pseudo(split, pairs_file, init_dir, out_dir, epochs=1, bs=512, lr=5e-5):
+    """Continue fine-tuning on pseudo-labelled pairs of a test split (D-018): `pairs_file` holds row positions
+    (i1, i2) of near-certain matches. Same loss as `finetune`; starts from the already fine-tuned model."""
+    s1, s23 = load_split(split)
+    pp = pd.read_parquet(pairs_file)
+    t1, t2 = record_text(s1), record_text(s23)
+    A = [t1[i] for i in pp.i1.values]; B = [t2[i] for i in pp.i2.values]
+    # hard in-batch negatives: batches of consecutive pairs in (address locality, name) order hold near-twin
+    # businesses (same city, similar names), which random batches almost never do
+    key = pd.DataFrame({"loc": s1.toks.values[pp.i1.values], "core": s1.core.values[pp.i1.values]})
+    key["loc"] = key["loc"].str.split().str[-1].fillna("")
+    order = key.sort_values(["loc", "core"], kind="stable").index.values
+    _train(A, B, pp.i1.values, init_dir, out_dir, epochs, bs, lr, order=order)
+
+
+def _train(A, B, s1_of, init, out_dir, epochs, bs, lr, order=None):
+    """order: if given, batches are consecutive runs of `order` (shuffled as whole batches each epoch)."""
+    print(f"fine-tuning on {len(A):,} pairs from {init}", flush=True)
+    tok = AutoTokenizer.from_pretrained(init)
+    model = Encoder(init).to(DEV)
     opt = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=0.01)
     steps = epochs * math.ceil(len(A) / bs)
     sched = torch.optim.lr_scheduler.OneCycleLR(opt, max_lr=lr, total_steps=steps, pct_start=0.05)
@@ -70,7 +89,11 @@ def finetune(epochs=1, bs=512, lr=1e-4, max_pairs=1_500_000):
     model.train()
     step = 0
     for ep in range(epochs):
-        perm = np.random.default_rng(ep).permutation(len(A))
+        if order is None:
+            perm = np.random.default_rng(ep).permutation(len(A))
+        else:
+            blocks = [order[i:i + bs] for i in range(0, len(order), bs)]
+            perm = np.concatenate([blocks[j] for j in np.random.default_rng(ep).permutation(len(blocks))])
         t = time.time()
         for i in range(0, len(perm), bs):
             idx = perm[i:i + bs]
@@ -90,9 +113,9 @@ def finetune(epochs=1, bs=512, lr=1e-4, max_pairs=1_500_000):
             step += 1
             if step % 200 == 0:
                 print(f"ep {ep} step {step}/{steps} loss {loss.item():.4f} ({time.time() - t:.0f}s)", flush=True)
-    MODEL_DIR.mkdir(exist_ok=True, parents=True)
-    model.bert.save_pretrained(MODEL_DIR); tok.save_pretrained(MODEL_DIR)
-    print("saved", MODEL_DIR)
+    out_dir.mkdir(exist_ok=True, parents=True)
+    model.bert.save_pretrained(out_dir); tok.save_pretrained(out_dir)
+    print("saved", out_dir)
 
 
 @torch.no_grad()
@@ -165,8 +188,18 @@ def knn(split: str):
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
-    ap.add_argument("cmd", choices=["finetune", "knn"])
+    ap.add_argument("cmd", choices=["finetune", "finetune_pseudo", "knn"])
     ap.add_argument("--split", default="train")
     ap.add_argument("--epochs", type=int, default=1)
+    ap.add_argument("--model-dir", default=None, help="bi-encoder directory (default ARTIFACTS/biencoder)")
+    ap.add_argument("--pairs", default=None, help="finetune_pseudo: parquet of (i1, i2) pseudo-positive pairs")
+    ap.add_argument("--lr", type=float, default=5e-5)
     args = ap.parse_args()
-    finetune(args.epochs) if args.cmd == "finetune" else knn(args.split)
+    if args.model_dir:
+        MODEL_DIR = config.ART_DIR / args.model_dir
+    if args.cmd == "finetune":
+        finetune(args.epochs)
+    elif args.cmd == "finetune_pseudo":
+        finetune_pseudo(args.split, args.pairs, config.ART_DIR / "biencoder", MODEL_DIR, args.epochs, lr=args.lr)
+    else:
+        knn(args.split)

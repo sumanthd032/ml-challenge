@@ -210,30 +210,32 @@ def fit(tag, rounds, use_ce=False, ce2=None, extra=False):
     json.dump({"results": res, "iters": iters, "final_iter": n_iter}, open(config.ART_DIR / f"stage2_report_{out_tag}.json", "w"), indent=1)
 
 
-def apply(tag, use_ce=False, ce2=None, extra=False, n_chunks=12):
+def apply(tag, use_ce=False, ce2=None, extra=False, n_chunks=12, split="test", ce_sfx=""):
     """Test re-scoring in chunks of whole S1s (all context is within-S1, so chunking is exact).
 
-    Each chunk's stage-2 probabilities are checkpointed to FEAT_DIR/stage2_test_parts/, so a machine reset
+    Each chunk's stage-2 probabilities are checkpointed to FEAT_DIR/stage2_<split>_parts/, so a machine reset
     (D-012) only loses the chunk in progress, and the peak memory is ~1/n_chunks of a single pass.
+    split: 'test' or a test subset such as 'testfr' (France only, D-018).
     """
     import os
     model_tag = model_tag_of(tag, use_ce, ce2, extra)
     t = time.time()
-    s1, s23 = load_split("test")
+    s1, s23 = load_split(split)
     codes = name_codes(s1, s23, np.ones(len(s1), dtype=bool)) if extra else None
     s1 = s1[["name", "core", "raw_addr", "toks"]]
     s23 = s23[["name", "core", "addr", "raw_addr", "toks"]]
-    sc = pd.read_parquet(config.FEAT_DIR / f"test_scores_lgb_{tag}.parquet")
+    sc = pd.read_parquet(config.FEAT_DIR / f"{split}_scores_lgb_{tag}.parquet")
     pos = np.flatnonzero(sc.p.values >= MIN_P)                       # rows stage 2 re-scores
     sub = sc.iloc[pos].reset_index(drop=True)
-    emb = np.load(config.ART_DIR / "test_emb_s23.npy", mmap_mode="r")
+    emb = np.load(config.ART_DIR / f"{split}_emb_s23.npy", mmap_mode="r")
     mdl = lgb.Booster(model_file=str(config.ART_DIR / f"lgb2_{model_tag}.txt"))
     feats = mdl.feature_name()
-    ce = (pd.read_parquet(config.FEAT_DIR / "ce_scores_test.parquet", columns=["s1_id", "cand_id", "ce"])
+    ce = (pd.read_parquet(config.FEAT_DIR / f"ce_scores_{split}{ce_sfx}.parquet", columns=["s1_id", "cand_id", "ce"])
           if use_ce else None)
-    ce2_df = (pd.read_parquet(config.FEAT_DIR / f"ce_scores_test_{ce2}.parquet", columns=["s1_id", "cand_id", "ce"])
+    ce2_df = (pd.read_parquet(config.FEAT_DIR / f"ce_scores_{split}_{ce2}.parquet", columns=["s1_id", "cand_id", "ce"])
               if ce2 else None)
-    d = config.FEAT_DIR / f"stage2_test_parts_{model_tag}"
+    split = split + ce_sfx                    # output names carry the cross-encoder variant
+    d = config.FEAT_DIR / f"stage2_{split}_parts_{model_tag}"
     d.mkdir(exist_ok=True)
     # chunk boundaries on S1 id, so every S1's rows land in one chunk
     edges = np.quantile(sub.s1_id.values, np.linspace(0, 1, n_chunks + 1)).astype(np.int64)
@@ -266,8 +268,8 @@ def apply(tag, use_ce=False, ce2=None, extra=False, n_chunks=12):
         p[pos[idx.astype(np.int64)]] = p2
     out = pd.DataFrame({"s1_id": sc.s1_id.values, "cand_id": sc.cand_id.values, "p": p})
     del sc
-    out.to_parquet(config.FEAT_DIR / f"test_scores2_{model_tag}.parquet", index=False)
-    print("saved", config.FEAT_DIR / f"test_scores2_{model_tag}.parquet", f"({time.time() - t:.0f}s)")
+    out.to_parquet(config.FEAT_DIR / f"{split}_scores2_{model_tag}.parquet", index=False)
+    print("saved", config.FEAT_DIR / f"{split}_scores2_{model_tag}.parquet", f"({time.time() - t:.0f}s)")
 
 
 def main():
@@ -278,11 +280,13 @@ def main():
     ap.add_argument("--ce", action="store_true", help="add cross-encoder score features")
     ap.add_argument("--ce2", default=None, help="tag of a second cross-encoder (ce_scores_<split>_<tag>.parquet)")
     ap.add_argument("--x", action="store_true", help="add name-ambiguity and twin features")
+    ap.add_argument("--split", default="test", help="apply: test split name (test, or a subset like testfr)")
+    ap.add_argument("--ce-sfx", default="", help="apply: read ce_scores_<split><sfx>.parquet (e.g. _fr)")
     args = ap.parse_args()
     if args.cmd == "fit":
         fit(args.tag, args.rounds, args.ce, args.ce2, args.x)
     else:
-        apply(args.tag, args.ce, args.ce2, args.x)
+        apply(args.tag, args.ce, args.ce2, args.x, split=args.split, ce_sfx=args.ce_sfx)
 
 
 if __name__ == "__main__":

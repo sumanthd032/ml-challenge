@@ -21,13 +21,18 @@ _IDF = {}
 
 
 def build_idf(s1: pd.DataFrame, s23: pd.DataFrame) -> dict:
-    """IDF of core-name tokens (over S1+S2+S3 of the split). Used for weighted token overlap."""
+    """IDF of core-name tokens (over S1+S2+S3 of the split). Used for weighted token overlap.
+
+    Env BER_IDF_SCALE multiplies the record count (adds log(scale) to every IDF). A split holding one country
+    uses 2: in train each country's tokens get about log(N_train / N_country) = +0.5 (US) .. +0.9 (India) on top of
+    their within-country IDF, and a single-country split would otherwise get +0 (D-018)."""
+    import os
     from collections import Counter
     c = Counter()
     for col in (s1.core, s23.core):
         for s in col:
             c.update(set(s.split()))
-    n = len(s1) + len(s23)
+    n = (len(s1) + len(s23)) * float(os.environ.get("BER_IDF_SCALE", "1"))
     return {t: math.log(n / v) for t, v in c.items() if v >= 2}
 
 
