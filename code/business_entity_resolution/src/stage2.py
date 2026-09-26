@@ -108,6 +108,43 @@ def name_features(df: pd.DataFrame, codes: dict) -> pd.DataFrame:
     return df
 
 
+def density_codes(split: str, s1: pd.DataFrame, s23: pd.DataFrame, pool: np.ndarray) -> dict:
+    """Neighbourhood density inputs (D-018): city of every record (geo.py) and, per (country, city, core name) and per
+    (country, street+city tokens), how many pool S1s carry it. France packs 259k S1s into 15 cities, so a candidate's
+    name often fits several S1s of one city; India/US dense areas teach stage 2 what that does to match odds."""
+    import geo
+    c1, c23 = geo.city_arrays(split, s1, s23, config.ART_DIR)
+    k_cc = np.concatenate([s1.country.values + "|" + c1.astype(str) + "|" + s1.core.values,
+                           s23.country.values + "|" + c23.astype(str) + "|" + s23.core.values])
+    ok_cc = np.concatenate([(c1 != "") & (s1.core.values != ""), (c23 != "") & (s23.core.values != "")])
+    code_cc = pd.factorize(k_cc)[0]
+    n1 = len(s1)
+    cnt_cc = np.bincount(code_cc[:n1][pool & ok_cc[:n1]], minlength=code_cc.max() + 1)
+    k_st = s1.country.values + "|" + s1.toks.values
+    code_st = pd.factorize(k_st)[0]
+    cnt_st = np.bincount(code_st[pool & (s1.toks.values != "")], minlength=code_st.max() + 1)
+    return {"c1": c1, "c23": c23, "cc1": code_cc[:n1], "cc23": code_cc[n1:], "ok1": ok_cc[:n1], "ok23": ok_cc[n1:],
+            "cnt_cc": cnt_cc, "st1": code_st, "st_ok": s1.toks.values != "", "cnt_st": cnt_st}
+
+
+DENS_FEATS = ["n_cc_a", "n_cc_c", "city_eq", "n_st_a", "pt_name", "pt_num", "pt_st"]
+
+
+def density_features(df: pd.DataFrame, d: dict, s1: pd.DataFrame, s23: pd.DataFrame) -> pd.DataFrame:
+    import pairtype
+    a, c = df.s1_id.values, df.cand_id.values
+    df["n_cc_a"] = np.where(d["ok1"][a], d["cnt_cc"][d["cc1"][a]], -1).astype(np.float32)
+    df["n_cc_c"] = np.where(d["ok23"][c], d["cnt_cc"][d["cc23"][c]], -1).astype(np.float32)
+    ca, cc = d["c1"][a], d["c23"][c]
+    df["city_eq"] = np.where(cc == "", -1, np.where(ca == cc, 1, 0)).astype(np.float32)
+    df["n_st_a"] = np.where(d["st_ok"][a], d["cnt_st"][d["st1"][a]], -1).astype(np.float32)
+    t = time.time()
+    ty = pairtype.pair_types(s1, s23, a, c)
+    df["pt_name"], df["pt_num"], df["pt_st"] = ty[:, 0], ty[:, 1], ty[:, 2]
+    print(f"  [stage2] density + pair-type features done ({time.time() - t:.0f}s)", flush=True)
+    return df
+
+
 def attach_twin(df: pd.DataFrame, s1: pd.DataFrame, s23: pd.DataFrame) -> pd.DataFrame:
     from twin import TWIN_NAMES, twin_features
     t = time.time()
@@ -158,14 +195,14 @@ def rescored(sc, df, p2):
     return out
 
 
-def model_tag_of(tag, use_ce, ce2, extra):
-    return tag + ("ce" if use_ce else "") + (ce2 or "") + ("x" if extra else "")
+def model_tag_of(tag, use_ce, ce2, extra, dens=False):
+    return tag + ("ce" if use_ce else "") + (ce2 or "") + ("x" if extra else "") + ("d" if dens else "")
 
 
-def fit(tag, rounds, use_ce=False, ce2=None, extra=False):
+def fit(tag, rounds, use_ce=False, ce2=None, extra=False, dens=False):
     from twin import TWIN_NAMES
-    feats = FEATS + (CE_FEATS if use_ce else []) + (CE2_FEATS if ce2 else []) +         (NAME_FEATS + ["tw_" + n for n in TWIN_NAMES] if extra else [])
-    out_tag = model_tag_of(tag, use_ce, ce2, extra)
+    feats = FEATS + (CE_FEATS if use_ce else []) + (CE2_FEATS if ce2 else []) +         (NAME_FEATS + ["tw_" + n for n in TWIN_NAMES] if extra else []) + (DENS_FEATS if dens else [])
+    out_tag = model_tag_of(tag, use_ce, ce2, extra, dens)
     s1, s23 = load_split("train")
     role = s1.entity_id.map(config.s1_role).values
     from train import truth_rows
@@ -183,6 +220,8 @@ def fit(tag, rounds, use_ce=False, ce2=None, extra=False):
     if extra:
         df = name_features(df, name_codes(s1, s23, role != "ghost"))
         df = attach_twin(df, s1, s23)
+    if dens:
+        df = density_features(df, density_codes("train", s1, s23, role != "ghost"), s1, s23)
     y = df.label.values
     fold = (pd.util.hash_array(df.s1_id.values.astype(np.int64)) % 2).astype(int)
     oof = np.empty(len(df), dtype=np.float32)
@@ -210,7 +249,7 @@ def fit(tag, rounds, use_ce=False, ce2=None, extra=False):
     json.dump({"results": res, "iters": iters, "final_iter": n_iter}, open(config.ART_DIR / f"stage2_report_{out_tag}.json", "w"), indent=1)
 
 
-def apply(tag, use_ce=False, ce2=None, extra=False, n_chunks=12, split="test", ce_sfx=""):
+def apply(tag, use_ce=False, ce2=None, extra=False, n_chunks=12, split="test", ce_sfx="", dens=False):
     """Test re-scoring in chunks of whole S1s (all context is within-S1, so chunking is exact).
 
     Each chunk's stage-2 probabilities are checkpointed to FEAT_DIR/stage2_<split>_parts/, so a machine reset
@@ -218,10 +257,11 @@ def apply(tag, use_ce=False, ce2=None, extra=False, n_chunks=12, split="test", c
     split: 'test' or a test subset such as 'testfr' (France only, D-018).
     """
     import os
-    model_tag = model_tag_of(tag, use_ce, ce2, extra)
+    model_tag = model_tag_of(tag, use_ce, ce2, extra, dens)
     t = time.time()
     s1, s23 = load_split(split)
     codes = name_codes(s1, s23, np.ones(len(s1), dtype=bool)) if extra else None
+    dcodes = density_codes(split, s1, s23, np.ones(len(s1), dtype=bool)) if dens else None
     s1 = s1[["name", "core", "raw_addr", "toks"]]
     s23 = s23[["name", "core", "addr", "raw_addr", "toks"]]
     sc = pd.read_parquet(config.FEAT_DIR / f"{split}_scores_lgb_{tag}.parquet")
@@ -257,6 +297,8 @@ def apply(tag, use_ce=False, ce2=None, extra=False, n_chunks=12, split="test", c
                 df = attach_ce(df, ce2_df, "ce2")
             if extra:
                 df = attach_twin(name_features(df, codes), s1, s23)
+            if dens:
+                df = density_features(df, dcodes, s1, s23)
             p2 = mdl.predict(df[feats], num_threads=config.N_JOBS).astype(np.float32)
             del ch, df
         np.save(str(f) + ".tmp.npy", np.stack([idx.astype(np.float64), p2.astype(np.float64)]))
@@ -282,11 +324,12 @@ def main():
     ap.add_argument("--x", action="store_true", help="add name-ambiguity and twin features")
     ap.add_argument("--split", default="test", help="apply: test split name (test, or a subset like testfr)")
     ap.add_argument("--ce-sfx", default="", help="apply: read ce_scores_<split><sfx>.parquet (e.g. _fr)")
+    ap.add_argument("--dens", action="store_true", help="add neighbourhood-density + pair-type features (D-018)")
     args = ap.parse_args()
     if args.cmd == "fit":
-        fit(args.tag, args.rounds, args.ce, args.ce2, args.x)
+        fit(args.tag, args.rounds, args.ce, args.ce2, args.x, args.dens)
     else:
-        apply(args.tag, args.ce, args.ce2, args.x, split=args.split, ce_sfx=args.ce_sfx)
+        apply(args.tag, args.ce, args.ce2, args.x, split=args.split, ce_sfx=args.ce_sfx, dens=args.dens)
 
 
 if __name__ == "__main__":
