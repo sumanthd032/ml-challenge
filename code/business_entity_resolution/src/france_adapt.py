@@ -109,7 +109,7 @@ def ce_pairs(neg_p=0.02, max_neg_per_pos=2.0):
           f"neg stage-1 p median {neg.p.median():.3f}, share >= 0.5: {(neg.p >= 0.5).mean():.3f})")
 
 
-def ce_pairs_nn(n_neg=2, k_nn=5, p1_new=0.9):
+def ce_pairs_nn(n_neg=2, k_nn=5, p1_new=0.9, type_filter=False):
     """Cross-encoder self-training set with near-twin negatives (D-018).
 
     Positives: pseudo pairs (A, c) that the adapted stage 1 also accepts (p >= p1_new) and whose edit looks like
@@ -128,8 +128,13 @@ def ce_pairs_nn(n_neg=2, k_nn=5, p1_new=0.9):
     k_pos = pos.i1.values.astype(np.int64) * n2 + pos.i2.values
     j = np.minimum(np.searchsorted(k_sc[order], k_pos), len(order) - 1)
     p_new = np.where(k_sc[order][j] == k_pos, sc.p.values[order][j], 0.0)
-    ty = pt.pair_types(s1, s23, pos.i1.values, pos.i2.values)
-    keep = (p_new >= p1_new) & (ty[:, 0] != pt.NAME_TYPES.index("swap1")) & (ty[:, 1] != pt.NUM_TYPES.index("diff"))
+    keep = p_new >= p1_new
+    if type_filter:
+        # off by default: on labelled val, best-S1 pairs with one swapped name word at the same number + street are
+        # 98.9% true, and same name with another house number on the same street 79.5% (generic-word and number
+        # edits are generator noise), so filtering them taught the cross-encoder to reject true matches (D-018)
+        ty = pt.pair_types(s1, s23, pos.i1.values, pos.i2.values)
+        keep &= (ty[:, 0] != pt.NAME_TYPES.index("swap1")) & (ty[:, 1] != pt.NUM_TYPES.index("diff"))
     pos = pos[keep].reset_index(drop=True)
     E1 = np.load(config.ART_DIR / f"{SPLIT}_emb_s1.npy")
     q, c, _ = gpu_topk(E1, E1, k_nn + 1)
@@ -176,18 +181,28 @@ def assemble(iu_scores, iu_thr, fr_scores, fr_thr, out, compete_w=1.0):
                       "s1_with_match": int((res.matched_entity_ids != "").sum())}, indent=1))
 
 
-def candidates_file(out="candidate_pairs.tsv"):
-    """candidate_pairs.tsv with France candidates from the testfr store (the set its models scored)."""
-    from predict import write_lists
-    t1, t23 = load_split("test")
+def candidates_file(src="candidate_pairs.tsv", out="candidate_pairs_fa.tsv"):
+    """candidate_pairs.tsv for the final package: rows of India/US S1s streamed unchanged from the full-test file,
+    France rows replaced by the testfr candidate set (the pairs the France models scored). Streaming keeps the
+    peak memory at the France part only."""
     f1, f23 = load_split(SPLIT)
-    a = pd.read_parquet(config.FEAT_DIR / "test_scores_lgb_v1.parquet", columns=["s1_id", "cand_id"])
-    a = a[t1.country.values[a.s1_id.values] != COUNTRY]
     b = pd.read_parquet(config.FEAT_DIR / f"{SPLIT}_store" / "pairs.parquet", columns=["i1", "i2"])
-    i1 = pd.Index(t1.entity_id).get_indexer(f1.entity_id.values[b.i1.values])
-    i2 = pd.Index(t23.entity_id).get_indexer(f23.entity_id.values[b.i2.values])
-    write_lists(np.concatenate([a.s1_id.values, i1]), np.concatenate([a.cand_id.values, i2]), t1, t23,
-                "candidate_entity_ids", config.OUT_DIR / out)
+    ids = pd.DataFrame({"s1": f1.entity_id.values[b.i1.values], "c": f23.entity_id.values[b.i2.values]})
+    fr = ids.groupby("s1").c.agg(",".join).to_dict()
+    fr_all = set(f1.entity_id)
+    n_fr = n = 0
+    with open(config.OUT_DIR / src, encoding="utf-8") as fi, \
+            open(config.OUT_DIR / out, "w", encoding="utf-8", newline="\n") as fo:
+        fo.write(fi.readline())
+        for line in fi:
+            s1_id = line.split("\t", 1)[0]
+            n += 1
+            if s1_id in fr_all:
+                fo.write(f"{s1_id}\t{fr.get(s1_id, '')}\n")
+                n_fr += 1
+            else:
+                fo.write(line)
+    print(f"wrote {out}: {n:,} rows, {n_fr:,} France rows replaced ({len(ids):,} France candidate pairs)")
 
 
 if __name__ == "__main__":

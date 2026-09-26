@@ -160,18 +160,26 @@ def train(max_pairs, bs=256, lr=4e-5, eval_every=1000):
     print(f"saved {CE_DIR} ({time.time() - t:.0f}s)")
 
 
-def train_pseudo(split, pairs_file, init_dir, bs=256, lr=2e-5, epochs=1):
+def train_pseudo(split, pairs_file, init_dir, bs=256, lr=2e-5, epochs=1, anchor=0):
     """Continue fine-tuning a cross-encoder on self-labelled pairs of a test split (D-018): (i1, i2, label) rows
-    from france_adapt.ce_pairs. Saves to CE_DIR (select it with --tag)."""
+    from france_adapt.ce_pairs. Saves to CE_DIR (select it with --tag).
+    anchor: number of the original labelled training pairs (ce_train_pairs, fit S1s) mixed in (rehearsal), so the
+    model keeps the calibration stage 2 was trained on."""
     s1, s23 = load_split(split)
     t1, t2 = record_text(s1), record_text(s23)
     tr = pd.read_parquet(pairs_file)
     A, B, y = t1[tr.i1.values], t2[tr.i2.values], tr.label.values.astype(np.float32)
     s1v, s23v = load_split("train")
+    r1, r2 = record_text(s1v), record_text(s23v)
     va = pd.read_parquet(config.FEAT_DIR / "val_scores_v1.parquet")
     va = va[va.p >= P_MIN].sample(20_000, random_state=1)
-    vA, vB, vy = record_text(s1v)[va.s1_id.values], record_text(s23v)[va.cand_id.values], va.label.values
-    del s1v, s23v
+    vA, vB, vy = r1[va.s1_id.values], r2[va.cand_id.values], va.label.values
+    if anchor:
+        an = pd.read_parquet(config.FEAT_DIR / "ce_train_pairs.parquet").sample(anchor, random_state=config.SEED)
+        A = np.concatenate([A, r1[an.i1.values]]); B = np.concatenate([B, r2[an.i2.values]])
+        y = np.concatenate([y, an.label.values.astype(np.float32)])
+        print(f"rehearsal: + {len(an):,} labelled India/US pairs (pos rate {an.label.mean():.3f})", flush=True)
+    del s1v, s23v, r1, r2
     tok = AutoTokenizer.from_pretrained(init_dir)
     model = AutoModelForSequenceClassification.from_pretrained(init_dir).to(DEV)
     opt = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=0.01)
@@ -260,8 +268,10 @@ if __name__ == "__main__":
     ap.add_argument("--pairs", default=None, help="train_pseudo: parquet of (i1, i2, label)")
     ap.add_argument("--init", default="crossenc", help="train_pseudo: model directory under ARTIFACTS to start from")
     ap.add_argument("--lr", type=float, default=2e-5)
+    ap.add_argument("--anchor", type=int, default=0, help="train_pseudo: labelled train pairs mixed in (rehearsal)")
     args = ap.parse_args()
     set_model(args.base, args.tag)
     {"pairs": build_train_pairs, "train": lambda: train(args.max_pairs),
-     "train_pseudo": lambda: train_pseudo(args.split, args.pairs, config.ART_DIR / args.init, lr=args.lr),
+     "train_pseudo": lambda: train_pseudo(args.split, args.pairs, config.ART_DIR / args.init, lr=args.lr,
+                                          anchor=args.anchor),
      "score": lambda: score(args.split)}[args.cmd]()
