@@ -18,6 +18,7 @@ submission can be reproduced (`git checkout <commit>` + README steps).
 | v1-FAd-FR85/80 | 2026-09-27 | 987ffac | India/US v1-cel12xd (stage 2 + density features) + compete thr 0.7; France variant A with density stage 2 (v1cexd) thr 0.85 / 0.80 (D-018) | 0.9956 | 0.9897 | 0.9975 | 0.9737 | France 874.5k / 880.8k pairs; validator PASS; files output/variants/matching_results_FAd_FR{85,80}.tsv |
 | v1-FDd-FR80/70 | 2026-09-27 | 987ffac | India/US as FAd; France variant D (adapted bi-encoder + CE self-trained on near-twin negatives with rehearsal, v1cexd) thr 0.80 / 0.70 (D-018) | 0.9956 | 0.9897 | 0.9975 | 0.9737 | France 871.2k / 877.6k pairs; validator PASS (also against candidate_pairs_fa.tsv, no warnings); files output/variants/matching_results_FDd_FR{80,70}.tsv |
 | v1-FADblend-FR80 | 2026-09-27 | 987ffac | India/US as FAd; France = mean of A and D stage-2 scores, thr 0.80 | 0.9956 | 0.9897 | 0.9975 | 0.9737 | France 870.3k pairs; validator PASS; file output/variants/matching_results_FADblend_FR80.tsv |
+| v1-F3blend-FR80 | 2026-09-27 | 7d4d86d | as v1-FADblend-FR80 with France text fixes (D-019: dotted legal forms, departements -> region, no 2-letter state fallback) and the France pipeline rerun on them (split testfr3) | 0.9956 | 0.9897 | 0.9975 | 0.9737 | France 874.9k pairs; validator PASS against output/candidate_pairs_fa.tsv (now testfr3 France candidates); file output/variants/matching_results_F3blend_FR80.tsv |
 | v1-mixFR95 | 2026-09-26 | 8984e21 | India/US v1-cel12x thr 0.7, France v1-cex thr 0.95 (D-016) | 0.9956 | 0.9896 | 0.9975 | 0.9736 | France 3.22 pairs/S1; validator PASS; file output/variants/matching_results_cel12x_cexFR95.tsv |
 
 ## Leaderboard submissions
@@ -30,3 +31,4 @@ submission can be reproduced (`git checkout <commit>` + README steps).
 | 5 | 2026-09-26 | c80ef8e | v1-C-FR70 | 0.982152 | India/US v1-cel12x, France v1-cex, candidate competition everywhere (D-017): +0.00102 over #3 |
 | 6 | 2026-09-26 | c80ef8e | v1-C-FR85 | **0.982487** | as #5 with France thr 0.85: +0.00034 over #5, i.e. France pairs at 0.7-0.85 are < ~72% true (overconfident) |
 | 7 | 2026-09-26 | c80ef8e | v1-C-FR95 | 0.982237 | France thr 0.95: below #6, so France pairs at 0.85-0.95 are mostly true; best France thr ~0.85-0.9 |
+| 8 | 2026-09-27 | 987ffac | v1-FADblend-FR80 | **0.984816** | France adaptation (D-018), mean of variants A and D, thr 0.80; India/US v1-cel12xd + compete. +0.00233 over #6, ~+0.00009 of it India/US, so France ~+0.015 (~0.942 -> ~0.957 with India/US ~ val) |
