@@ -1,4 +1,4 @@
-﻿# Submission & Experiment History
+# Submission & Experiment History
 
 Leaderboard limit: 5 submissions/day, 25â€“27 Sep 2026. Each row links to a git commit so any
 submission can be reproduced (`git checkout <commit>` + README steps).
