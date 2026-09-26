@@ -16,6 +16,8 @@ Usage: python stage2.py fit --tag v1        (reads val_scores_v1.parquet, writes
        python stage2.py apply --tag v1      (reads test_scores_lgb_v1.parquet, writes test_scores2_v1.parquet)
        add --ce to use the cross-encoder score (crossenc.py, ce_scores_<split>.parquet) as a feature:
        the model / output tag becomes v1ce
+       add --ce2 <t> to also use a second cross-encoder (ce_scores_<split>_<t>.parquet): tag v1ce<t>
+       add --x for name-ambiguity + twin features (name_features, twin.py): tag suffix x
 """
 import argparse
 import json
@@ -81,7 +83,42 @@ def context_features(sc: pd.DataFrame, s23: pd.DataFrame, emb) -> pd.DataFrame:
     return df
 
 
-def attach_ce(df: pd.DataFrame, ce: pd.DataFrame) -> pd.DataFrame:
+def name_codes(s1: pd.DataFrame, s23: pd.DataFrame, pool: np.ndarray) -> dict:
+    """Per name field: integer codes of (country, name) for S1 and S2/S3 rows, and how many pool S1s carry each."""
+    out = {}
+    for col in ("name", "core"):
+        keys = np.concatenate([(s1.country + "|" + s1[col]).values, (s23.country + "|" + s23[col]).values])
+        codes = pd.factorize(keys)[0]
+        k1, k2 = codes[:len(s1)], codes[len(s1):]
+        out[col] = (k1, k2, np.bincount(k1[pool], minlength=codes.max() + 1), s23[col].values == "")
+    return out
+
+
+def name_features(df: pd.DataFrame, codes: dict) -> pd.DataFrame:
+    """Name ambiguity. A record without an address can only be linked by its name: it is a safe match when this S1
+    is the only pool S1 with that name, and a coin flip when several S1s share it (the legal form often decides)."""
+    a, c = df.s1_id.values, df.cand_id.values
+    for col, (k1, k2, cnt, empty2) in codes.items():
+        eq = (k1[a] == k2[c]) & ~empty2[c]
+        nc = np.where(empty2[c], -1, cnt[k2[c]]).astype(np.float32)
+        df[f"{col}_eq"] = eq.astype(np.float32)
+        df[f"n_{col}_c"] = nc                                        # pool S1s sharing the candidate's name
+        df[f"n_{col}_a"] = cnt[k1[a]].astype(np.float32)             # pool S1s sharing this S1's name
+        df[f"{col}_eq_uniq"] = (eq & (nc == 1)).astype(np.float32)
+    return df
+
+
+def attach_twin(df: pd.DataFrame, s1: pd.DataFrame, s23: pd.DataFrame) -> pd.DataFrame:
+    from twin import TWIN_NAMES, twin_features
+    t = time.time()
+    tw = twin_features(s1, s23, df.s1_id.values, df.cand_id.values)
+    for j, n in enumerate(TWIN_NAMES):
+        df["tw_" + n] = tw[:, j]
+    print(f"  [stage2] twin features done ({time.time() - t:.0f}s)", flush=True)
+    return df
+
+
+def attach_ce(df: pd.DataFrame, ce: pd.DataFrame, name: str = "ce") -> pd.DataFrame:
     """Add the cross-encoder score of each (s1_id, cand_id) pair, and its rank / gap within the S1."""
     k = ce.s1_id.values.astype(np.int64) * (1 << 32) + ce.cand_id.values
     order = np.argsort(k)
@@ -90,14 +127,17 @@ def attach_ce(df: pd.DataFrame, ce: pd.DataFrame) -> pd.DataFrame:
     pos = np.minimum(np.searchsorted(k, kd), len(k) - 1)
     hit = k[pos] == kd
     assert hit.mean() > 0.999, f"cross-encoder scores missing for {1 - hit.mean():.2%} of pairs"
-    df["ce"] = np.where(hit, ce.ce.values[order[pos]], np.nan).astype(np.float32)
-    g = df.groupby("s1_id").ce
-    df["ce_rank"] = g.rank(ascending=False, method="first").astype(np.float32)
-    df["ce_gap"] = (df.ce - g.transform("max")).astype(np.float32)
+    df[name] = np.where(hit, ce.ce.values[order[pos]], np.nan).astype(np.float32)
+    g = df.groupby("s1_id")[name]
+    df[name + "_rank"] = g.rank(ascending=False, method="first").astype(np.float32)
+    df[name + "_gap"] = (df[name] - g.transform("max")).astype(np.float32)
     return df
 
 
 CE_FEATS = ["ce", "ce_rank", "ce_gap"]
+CE2_FEATS = ["ce2", "ce2_rank", "ce2_gap"]
+NAME_FEATS = [f"{f}{col}{g}" for col in ("name", "core") for f, g in
+              (("", "_eq"), ("n_", "_c"), ("n_", "_a"), ("", "_eq_uniq"))]
 FEATS = ["p", "s1_max", "s1_sum", "s1_rank", "p_gap", "s1_n_hi", "s1_n_mid", "sib_n", "sib_cos_max", "sib_cos_mean",
          "sib_addr_max", "sib_name_max", "sib_addr_eq", "sib_name_eq", "c_no_addr"]
 PARAMS = dict(objective="binary", learning_rate=0.05, num_leaves=127, min_data_in_leaf=200, feature_fraction=0.9,
@@ -118,9 +158,14 @@ def rescored(sc, df, p2):
     return out
 
 
-def fit(tag, rounds, use_ce=False):
-    feats = FEATS + CE_FEATS if use_ce else FEATS
-    out_tag = tag + ("ce" if use_ce else "")
+def model_tag_of(tag, use_ce, ce2, extra):
+    return tag + ("ce" if use_ce else "") + (ce2 or "") + ("x" if extra else "")
+
+
+def fit(tag, rounds, use_ce=False, ce2=None, extra=False):
+    from twin import TWIN_NAMES
+    feats = FEATS + (CE_FEATS if use_ce else []) + (CE2_FEATS if ce2 else []) +         (NAME_FEATS + ["tw_" + n for n in TWIN_NAMES] if extra else [])
+    out_tag = model_tag_of(tag, use_ce, ce2, extra)
     s1, s23 = load_split("train")
     role = s1.entity_id.map(config.s1_role).values
     from train import truth_rows
@@ -132,6 +177,12 @@ def fit(tag, rounds, use_ce=False):
     df = context_features(sc, s23, emb)
     if use_ce:
         df = attach_ce(df, pd.read_parquet(config.FEAT_DIR / "ce_scores_val.parquet", columns=["s1_id", "cand_id", "ce"]))
+    if ce2:
+        df = attach_ce(df, pd.read_parquet(config.FEAT_DIR / f"ce_scores_val_{ce2}.parquet",
+                                           columns=["s1_id", "cand_id", "ce"]), "ce2")
+    if extra:
+        df = name_features(df, name_codes(s1, s23, role != "ghost"))
+        df = attach_twin(df, s1, s23)
     y = df.label.values
     fold = (pd.util.hash_array(df.s1_id.values.astype(np.int64)) % 2).astype(int)
     oof = np.empty(len(df), dtype=np.float32)
@@ -144,6 +195,7 @@ def fit(tag, rounds, use_ce=False):
         oof[te] = mdl.predict(df.loc[te, feats], num_iteration=mdl.best_iteration)
         iters.append(mdl.best_iteration)
     s2 = rescored(sc, df, oof)
+    s2.assign(label=sc.label.values).to_parquet(config.FEAT_DIR / f"val_scores2_{out_tag}.parquet", index=False)
     res = {}
     for name, table in (("stage1", sc), ("stage2", s2)):
         for thr in (0.4, 0.5, 0.6, 0.7, 0.8):
@@ -158,18 +210,19 @@ def fit(tag, rounds, use_ce=False):
     json.dump({"results": res, "iters": iters, "final_iter": n_iter}, open(config.ART_DIR / f"stage2_report_{out_tag}.json", "w"), indent=1)
 
 
-def apply(tag, use_ce=False, n_chunks=12):
+def apply(tag, use_ce=False, ce2=None, extra=False, n_chunks=12):
     """Test re-scoring in chunks of whole S1s (all context is within-S1, so chunking is exact).
 
     Each chunk's stage-2 probabilities are checkpointed to FEAT_DIR/stage2_test_parts/, so a machine reset
     (D-012) only loses the chunk in progress, and the peak memory is ~1/n_chunks of a single pass.
     """
     import os
-    model_tag = tag + ("ce" if use_ce else "")
+    model_tag = model_tag_of(tag, use_ce, ce2, extra)
     t = time.time()
     s1, s23 = load_split("test")
-    s23 = s23[["name", "addr", "raw_addr"]]
-    del s1
+    codes = name_codes(s1, s23, np.ones(len(s1), dtype=bool)) if extra else None
+    s1 = s1[["name", "core", "raw_addr", "toks"]]
+    s23 = s23[["name", "core", "addr", "raw_addr", "toks"]]
     sc = pd.read_parquet(config.FEAT_DIR / f"test_scores_lgb_{tag}.parquet")
     pos = np.flatnonzero(sc.p.values >= MIN_P)                       # rows stage 2 re-scores
     sub = sc.iloc[pos].reset_index(drop=True)
@@ -178,6 +231,8 @@ def apply(tag, use_ce=False, n_chunks=12):
     feats = mdl.feature_name()
     ce = (pd.read_parquet(config.FEAT_DIR / "ce_scores_test.parquet", columns=["s1_id", "cand_id", "ce"])
           if use_ce else None)
+    ce2_df = (pd.read_parquet(config.FEAT_DIR / f"ce_scores_test_{ce2}.parquet", columns=["s1_id", "cand_id", "ce"])
+              if ce2 else None)
     d = config.FEAT_DIR / f"stage2_test_parts_{model_tag}"
     d.mkdir(exist_ok=True)
     # chunk boundaries on S1 id, so every S1's rows land in one chunk
@@ -196,6 +251,10 @@ def apply(tag, use_ce=False, n_chunks=12):
             assert len(df) == len(ch)                                # sub already has p >= MIN_P
             if use_ce:
                 df = attach_ce(df, ce)
+            if ce2:
+                df = attach_ce(df, ce2_df, "ce2")
+            if extra:
+                df = attach_twin(name_features(df, codes), s1, s23)
             p2 = mdl.predict(df[feats], num_threads=config.N_JOBS).astype(np.float32)
             del ch, df
         np.save(str(f) + ".tmp.npy", np.stack([idx.astype(np.float64), p2.astype(np.float64)]))
@@ -217,11 +276,13 @@ def main():
     ap.add_argument("--tag", default="v1")
     ap.add_argument("--rounds", type=int, default=2000)
     ap.add_argument("--ce", action="store_true", help="add cross-encoder score features")
+    ap.add_argument("--ce2", default=None, help="tag of a second cross-encoder (ce_scores_<split>_<tag>.parquet)")
+    ap.add_argument("--x", action="store_true", help="add name-ambiguity and twin features")
     args = ap.parse_args()
     if args.cmd == "fit":
-        fit(args.tag, args.rounds, args.ce)
+        fit(args.tag, args.rounds, args.ce, args.ce2, args.x)
     else:
-        apply(args.tag, args.ce)
+        apply(args.tag, args.ce, args.ce2, args.x)
 
 
 if __name__ == "__main__":

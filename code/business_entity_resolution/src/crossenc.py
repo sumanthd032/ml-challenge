@@ -19,6 +19,8 @@ Usage:
   python crossenc.py pairs                  # -> FEAT_DIR/ce_train_pairs.parquet
   python crossenc.py train [--max-pairs N]  # -> ARTIFACTS/crossenc/
   python crossenc.py score --split val|test # -> FEAT_DIR/ce_scores_<split>.parquet
+  add --base <hf model> --tag <t> to train / score another model: outputs get a _<t> suffix
+  (ARTIFACTS/crossenc_<t>/, crossenc_<t>_ckpt.pt, ce_<split>_parts_<t>/, ce_scores_<split>_<t>.parquet)
 """
 import argparse
 import json
@@ -38,6 +40,20 @@ from data import load_split
 BASE = "cross-encoder/ms-marco-MiniLM-L-6-v2"
 CE_DIR = config.ART_DIR / "crossenc"
 CKPT = config.ART_DIR / "crossenc_ckpt.pt"
+TAG = ""
+
+
+def set_model(base: str, tag: str):
+    """Select the base model and the output names of one cross-encoder variant (tag '' = v1 names)."""
+    global BASE, CE_DIR, CKPT, TAG
+    BASE, TAG = base, tag
+    sfx = f"_{tag}" if tag else ""
+    CE_DIR = config.ART_DIR / f"crossenc{sfx}"
+    CKPT = config.ART_DIR / f"crossenc{sfx}_ckpt.pt"
+
+
+def scores_path(split: str, tag: str = ""):
+    return config.FEAT_DIR / f"ce_scores_{split}{'_' + tag if tag else ''}.parquet"
 MAX_LEN = 96
 P_MIN = 0.002          # stage-1 probability floor of the pruned candidate set (= candidate_pairs.tsv)
 NEG_RANK = 6           # hard negatives: S1-side rank <= NEG_RANK by pair_sim or by bi-encoder cosine
@@ -168,7 +184,7 @@ def score(split: str, chunk=1_000_000):
     pr = pruned_pairs(split)
     tok = AutoTokenizer.from_pretrained(CE_DIR)
     model = AutoModelForSequenceClassification.from_pretrained(CE_DIR).to(DEV)
-    d = config.FEAT_DIR / f"ce_{split}_parts"
+    d = config.FEAT_DIR / f"ce_{split}_parts{'_' + TAG if TAG else ''}"
     d.mkdir(exist_ok=True)
     t = time.time()
     n = -(-len(pr) // chunk)
@@ -181,8 +197,8 @@ def score(split: str, chunk=1_000_000):
         np.save(d / f"part_{k:04d}.tmp.npy", v); os.replace(d / f"part_{k:04d}.tmp.npy", p)
         print(f"  {split} chunk {k + 1}/{n} ({time.time() - t:.0f}s)", flush=True)
     pr["ce"] = np.concatenate([np.load(d / f"part_{k:04d}.npy") for k in range(n)])
-    pr.to_parquet(config.FEAT_DIR / f"ce_scores_{split}.parquet", index=False)
-    print(f"saved ce_scores_{split}.parquet: {len(pr):,} pairs ({time.time() - t:.0f}s)")
+    pr.to_parquet(scores_path(split, TAG), index=False)
+    print(f"saved {scores_path(split, TAG).name}: {len(pr):,} pairs ({time.time() - t:.0f}s)")
 
 
 if __name__ == "__main__":
@@ -190,6 +206,9 @@ if __name__ == "__main__":
     ap.add_argument("cmd", choices=["pairs", "train", "score"])
     ap.add_argument("--split", default="val")
     ap.add_argument("--max-pairs", type=int, default=6_000_000)
+    ap.add_argument("--base", default=BASE)
+    ap.add_argument("--tag", default="")
     args = ap.parse_args()
+    set_model(args.base, args.tag)
     {"pairs": build_train_pairs, "train": lambda: train(args.max_pairs),
      "score": lambda: score(args.split)}[args.cmd]()
