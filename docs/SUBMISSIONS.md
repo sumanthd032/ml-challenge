@@ -38,3 +38,4 @@ submission can be reproduced (`git checkout <commit>` + README steps).
 | 8 | 2026-09-27 | 987ffac | v1-FADblend-FR80 | **0.984816** | France adaptation (D-018), mean of variants A and D, thr 0.80; India/US v1-cel12xd + compete. +0.00233 over #6, ~+0.00009 of it India/US, so France ~+0.015 (~0.942 -> ~0.957 with India/US ~ val) |
 | 9 | 2026-09-27 | 7d4d86d | v1-F3blend-FR80 | 0.984582 | France text fixes (D-019): -0.000234 vs #8; traced to France "vocabulary swaps" (D-021) |
 | 10 | 2026-09-27 | fcaa89c | v1-VR-IUg50 | **0.988833** | #8 minus 26,942 France vocabulary swaps (D-021) + 9,192 recovered France pairs (D-022) + India/US no-ghost stage 2 thr 0.5 compete 2 (D-020): +0.00402 over #8 |
+| 11 | 2026-09-27 | 86a1726 | v1-VRF-IUg45 | 0.988556 | #10 + India/US thr 0.45 and first-match rule (D-023): -0.00028; the test-like val gain did not transfer in the low-probability region |
