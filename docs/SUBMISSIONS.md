@@ -22,6 +22,7 @@ submission can be reproduced (`git checkout <commit>` + README steps).
 | v1-V-IUd70 | 2026-09-27 | 29ed379 | #8 with France vocabulary swaps removed (D-021): India/US v1-cel12xd thr 0.7 compete 1; France A+D blend thr 0.8 minus 26,942 pairs | 0.9956 | 0.9897 | 0.9975 | 0.9737 | validator PASS (candidate_pairs_fa.tsv = testfr France candidates); file output/variants/matching_results_V_IUd70_FADblend_FR80.tsv |
 | v1-V-IUg50 | 2026-09-27 | 29ed379 | as v1-V-IUd70 plus the India/US fix (D-020): v1cel12xdg (stage 2 without ghost rows), thr 0.5, compete 2 | 0.9956 | test-like 0.99140 | | | validator PASS; file output/variants/matching_results_V_IUg50_FADblend_FR80.tsv |
 | v1-VR-IUg50 | 2026-09-27 | fcaa89c | India/US v1cel12xdg thr 0.5 compete 2 (D-020, confirmed on test by D-022); France #8 blend thr 0.8 minus 26,942 vocabulary swaps (D-021) plus 9,192 recovered high-precision pairs (D-022) | 0.9956 | test-like 0.99140 | | | France 852,590 pairs; validator PASS, no warnings; file output/variants/matching_results_VR_IUg50_FADblend_FR80.tsv |
+| v1-VRF-IUg45 | 2026-09-27 | 86a1726 | as v1-VR-IUg50 (#10) with India/US thr 0.45 and the first-match rule at p >= 0.2 (D-023) | 0.9956 | test-like 0.99177 | | | India/US 5,000,415 pairs (+4,769 incl. 827 first matches); France unchanged; validator PASS; file output/variants/matching_results_VRF_IUg45_FADblend_FR80.tsv |
 | v1-mixFR95 | 2026-09-26 | 8984e21 | India/US v1-cel12x thr 0.7, France v1-cex thr 0.95 (D-016) | 0.9956 | 0.9896 | 0.9975 | 0.9736 | France 3.22 pairs/S1; validator PASS; file output/variants/matching_results_cel12x_cexFR95.tsv |
 
 ## Leaderboard submissions
@@ -35,3 +36,5 @@ submission can be reproduced (`git checkout <commit>` + README steps).
 | 6 | 2026-09-26 | c80ef8e | v1-C-FR85 | **0.982487** | as #5 with France thr 0.85: +0.00034 over #5, i.e. France pairs at 0.7-0.85 are < ~72% true (overconfident) |
 | 7 | 2026-09-26 | c80ef8e | v1-C-FR95 | 0.982237 | France thr 0.95: below #6, so France pairs at 0.85-0.95 are mostly true; best France thr ~0.85-0.9 |
 | 8 | 2026-09-27 | 987ffac | v1-FADblend-FR80 | **0.984816** | France adaptation (D-018), mean of variants A and D, thr 0.80; India/US v1-cel12xd + compete. +0.00233 over #6, ~+0.00009 of it India/US, so France ~+0.015 (~0.942 -> ~0.957 with India/US ~ val) |
+| 9 | 2026-09-27 | 7d4d86d | v1-F3blend-FR80 | 0.984582 | France text fixes (D-019): -0.000234 vs #8; traced to France "vocabulary swaps" (D-021) |
+| 10 | 2026-09-27 | fcaa89c | v1-VR-IUg50 | **0.988833** | #8 minus 26,942 France vocabulary swaps (D-021) + 9,192 recovered France pairs (D-022) + India/US no-ghost stage 2 thr 0.5 compete 2 (D-020): +0.00402 over #8 |
