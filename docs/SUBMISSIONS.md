@@ -1,6 +1,6 @@
-# Submission & Experiment History
+﻿# Submission & Experiment History
 
-Leaderboard limit: 5 submissions/day, 25â€“27 Sep 2026. Each row links to a git commit so any
+Leaderboard limit: 5 submissions/day, 25Ã¢â‚¬â€œ27 Sep 2026. Each row links to a git commit so any
 submission can be reproduced (`git checkout <commit>` + README steps).
 
 ## Experiments (local validation, macro F0.5)
@@ -44,3 +44,6 @@ submission can be reproduced (`git checkout <commit>` + README steps).
 | 13 | 2026-09-27 | (D-025) | S13-contested-acr | **0.988978** | #12 + contested-pair removals and acronym additions (D-025): +0.000113 |
 | 14b | 2026-09-27 | (this commit) | S14b-lf-frnonum | (candidate) | #13 + D-026 (stage-3 rival-free adds, France contested removals) + D-027 (legal-form conflict removals, France no-house-number adds). Expected ~0.98905-0.98915 |
 | 15 | 2026-09-27 | 0aa2cd7 | S15-noiseword | (candidate) | #14b + 2,409 France noise-word descriptor additions (D-028). Expected ~0.9891-0.9892 |
+| 16a | 2026-09-27 | (D-030) | S16a-f1lowp | (candidate) | #15 - 233 France descriptor-swap decoys (D-030). Expected ~+0.00002 over #15 |
+| 16 | 2026-09-27 | (D-030) | S16-f1lowp-iu0506 | (candidate) | #16a - 2,403 India/US low-label p 0.5-0.6 pairs (D-030, medium confidence). Expected ~+0.00008 over #15 |
+
