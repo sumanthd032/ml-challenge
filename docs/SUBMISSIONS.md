@@ -43,3 +43,4 @@ submission can be reproduced (`git checkout <commit>` + README steps).
 | 12 | 2026-09-27 | 18d4941 | v1-VRR-IUg50 | **0.988865** | #10 + D-024 test-measured corrections: +0.000032 (expected +0.00016) |
 | 13 | 2026-09-27 | (D-025) | S13-contested-acr | **0.988978** | #12 + contested-pair removals and acronym additions (D-025): +0.000113 |
 | 14b | 2026-09-27 | (this commit) | S14b-lf-frnonum | (candidate) | #13 + D-026 (stage-3 rival-free adds, France contested removals) + D-027 (legal-form conflict removals, France no-house-number adds). Expected ~0.98905-0.98915 |
+| 15 | 2026-09-27 | 0aa2cd7 | S15-noiseword | (candidate) | #14b + 2,409 France noise-word descriptor additions (D-028). Expected ~0.9891-0.9892 |
