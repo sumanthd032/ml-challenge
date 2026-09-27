@@ -124,7 +124,8 @@ FIELDS = ["name", "core", "raw_addr", "toks"]
 
 
 def twin_features(s1, s23, i1, i2, step=20000) -> np.ndarray:
-    A = list(zip(*[s1[c].values[i1] for c in FIELDS]))
+    """float matrix (len(i1), len(TWIN_NAMES)) of twin features for the pairs (s1 row i1[k], s23 row i2[k])."""
+    A =list(zip(*[s1[c].values[i1] for c in FIELDS]))
     B = list(zip(*[s23[c].values[i2] for c in FIELDS]))
     jobs = [(A[i:i + step], B[i:i + step]) for i in range(0, len(A), step)]
     with Pool(config.N_JOBS) as pool:

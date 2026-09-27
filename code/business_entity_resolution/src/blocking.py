@@ -1,4 +1,4 @@
-"""Step 2 - candidate generation (blocking).
+"""Step 2: candidate generation (blocking).
 
 Pass A (this file): IDF-weighted sparse token retrieval, per country, in both directions.
 Each record becomes a bag of typed tokens:
@@ -26,6 +26,7 @@ N_FEAT = 2 ** 24
 
 
 def record_tokens(core, concat, alt, toks, nums):
+    """Typed token list of one record (see the module docstring; `k:` is the whole concatenated name)."""
     out = []
     for t in (core + " " + alt).split():
         out.append("n:" + t)
@@ -45,6 +46,7 @@ def _analyzer(row):
 
 
 def vectorize(df: pd.DataFrame, pool: Pool) -> sp.csr_matrix:
+    """Binary hashed token matrix (rows = records of df), built in 50k-row chunks on the worker pool."""
     hv = HashingVectorizer(analyzer=_analyzer, n_features=N_FEAT, alternate_sign=False, norm=None, binary=True,
                            dtype=np.float32)
     rows = list(zip(df.core, df.concat, df.alt, df.toks, df.nums))
@@ -97,6 +99,11 @@ def _topk_chunk(args):
 
 
 def topk(Q: sp.csr_matrix, B: sp.csr_matrix, k: int, tag: str, chunk: int = 1000):
+    """Top-k rows of B by dot product for every row of Q, in parallel over row chunks of Q.
+
+    B^T is written to a temporary .npz (named by `tag`) that each worker loads once. Returns (query row, B row, score)
+    arrays; rows of Q with no overlapping token are absent.
+    """
     path_t = config.ART_DIR / f"_tmp_BT_{tag}.npz"
     sp.save_npz(path_t, B.T.tocsr(), compressed=False)
     jobs = [(Q[i:i + chunk], k, i) for i in range(0, Q.shape[0], chunk)]
@@ -119,6 +126,11 @@ def _rank_within(groups: np.ndarray, scores: np.ndarray) -> np.ndarray:
 
 
 def block_country(s1: pd.DataFrame, s23: pd.DataFrame, tag: str, pool: Pool) -> pd.DataFrame:
+    """Pass A for one country: union of forward (S1->S2/S3) and reverse top-k pairs.
+
+    A rank of 99 means the pair was not found in that direction. Returns
+    (s1_id, cand_id, blk_score, blk_rank_fwd, blk_rank_rev).
+    """
     t = time.time()
     A = vectorize(s1, pool); B = vectorize(s23, pool)
     A, B = idf_weight(A, B)
@@ -145,6 +157,7 @@ def block_country(s1: pd.DataFrame, s23: pd.DataFrame, tag: str, pool: Pool) -> 
 
 
 def run_blocking(s1n: pd.DataFrame, s23n: pd.DataFrame) -> pd.DataFrame:
+    """Pass A over all countries present on both sides; returns the concatenated block_country outputs."""
     parts = []
     with Pool(config.N_JOBS) as pool:
         for country in sorted(set(s1n.country) | set(s23n.country)):

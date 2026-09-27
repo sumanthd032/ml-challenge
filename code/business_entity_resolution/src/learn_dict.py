@@ -24,11 +24,13 @@ _TOK = re.compile(r"[^\wऀ-ൿ]+")
 
 
 def toks(s):
+    """Lower-cased tokens of s, split on anything that is not a word character or an Indic-block character."""
     return [t for t in _TOK.sub(" ", s.lower()).split() if t]
 
 
 def main():
-    s1 = read_source("train", 1).set_index("entity_id").business_name
+    """Count aligned token pairs over Indic-script positive pairs and write the dictionary to indic_dict.json."""
+    s1 =read_source("train", 1).set_index("entity_id").business_name
     s23 = pd.concat([read_source("train", 2), read_source("train", 3)]).set_index("entity_id").business_name
     ind = s23[s23.map(has_indic)]
     gt = load_gt_pairs()

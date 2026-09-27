@@ -1,4 +1,4 @@
-"""Step 1 - normalize every source file once and cache the result as TSV in ARTIFACTS.
+"""Step 1: normalize every source file once and cache the result as TSV in ARTIFACTS.
 
 Usage: python preprocess.py [--splits train test]
 """
@@ -34,6 +34,7 @@ def _norm_chunk(rows):
 
 
 def normalize_df(df: pd.DataFrame, pool: Pool) -> pd.DataFrame:
+    """Normalize names and addresses of a raw source table in 20k-row chunks; returns a table with COLS."""
     rows = list(zip(df.entity_id, df.business_name, df.business_address, df.country))
     chunks = [rows[i:i + 20000] for i in range(0, len(rows), 20000)]
     res = [r for part in pool.imap(_norm_chunk, chunks) for r in part]
@@ -41,6 +42,7 @@ def normalize_df(df: pd.DataFrame, pool: Pool) -> pd.DataFrame:
 
 
 def main():
+    """Normalize sources 1-3 of each requested split and write them to config.norm_path."""
     ap = argparse.ArgumentParser()
     ap.add_argument("--splits", nargs="+", default=["train", "test"])
     args = ap.parse_args()
@@ -49,7 +51,7 @@ def main():
             for s in (1, 2, 3):
                 t = time.time()
                 df = normalize_df(read_source(split, s), pool)
-                # raw text may contain tabs/quotes? write with QUOTE_NONE and escape-free (tabs never occur in values)
+                # QUOTE_NONE keeps quotes in values verbatim; tabs never occur in values
                 df.to_csv(config.norm_path(split, s), sep="\t", index=False, quoting=csv.QUOTE_NONE, escapechar="\\")
                 print(f"{split} s{s}: {len(df):,} rows in {time.time() - t:.0f}s", flush=True)
 

@@ -1,4 +1,4 @@
-"""Step 3 - pairwise features for (S1, candidate) pairs.
+"""Step 3: pairwise features for (S1, candidate) pairs.
 
 All features are language-agnostic similarity scores (no country one-hot), so the model can be
 applied to France although it is trained on US + India only.
@@ -127,6 +127,7 @@ def _chunk(args):
 
 
 def make_pool(idf: dict) -> Pool:
+    """Worker pool for pair_features; each worker is initialized with the token IDF table."""
     return Pool(config.N_JOBS, initializer=_init, initargs=(idf,))
 
 
@@ -144,6 +145,10 @@ GROUP_INPUTS = ["n_tset", "cc_jw", "a_tset", "num_jacc"]
 
 
 def add_pair_sim(df: pd.DataFrame) -> None:
+    """Add `pair_sim` in place: a hand-weighted name + address + number score used to rank a group's pairs.
+
+    Missing address or number similarity (value < 0) gets the fixed fallback 50 or 30.
+    """
     df["pair_sim"] = ((df.n_tset + df.cc_jw) / 2 + np.where(df.a_tset >= 0, df.a_tset, 50) +
                       np.where(df.num_jacc >= 0, df.num_jacc * 100, 30)).astype(np.float32)
 

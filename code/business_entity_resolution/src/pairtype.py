@@ -95,8 +95,10 @@ def pair_types(s1, s23, i1, i2, step=50000) -> np.ndarray:
 
 
 def type_key(t: np.ndarray) -> np.ndarray:
+    """Encode (name, number, street) type rows of pair_types as one integer: name*100 + number*10 + street."""
     return t[:, 0].astype(np.int16) * 100 + t[:, 1] * 10 + t[:, 2]
 
 
 def type_label(k: int) -> str:
+    """Readable "name/number/street" label of a type_key value."""
     return f"{NAME_TYPES[k // 100]}/{NUM_TYPES[(k // 10) % 10]}/{ST_TYPES[k % 10]}"

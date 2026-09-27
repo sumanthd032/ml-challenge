@@ -34,10 +34,12 @@ _SPECIAL = {0x0D7A: "n", 0x0D7B: "n", 0x0D7C: "r", 0x0D7D: "l", 0x0D7E: "l", 0x0
 
 
 def is_indic_char(ch: str) -> bool:
+    """True when ch lies in the Indic Unicode blocks U+0900..U+0D7F (Devanagari to Malayalam)."""
     return _BLOCK_START <= ord(ch) <= _BLOCK_END
 
 
 def has_indic(s: str) -> bool:
+    """True when s contains at least one Indic-block character."""
     return any(_BLOCK_START <= ord(c) <= _BLOCK_END for c in s)
 
 

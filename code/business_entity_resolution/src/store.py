@@ -29,6 +29,7 @@ GROUP_CHUNK = 8_000_000
 
 
 def store_dir(split: str):
+    """Feature store directory of `split` (FEAT_DIR/<split>_store), created if missing."""
     d = config.FEAT_DIR / f"{split}_store"
     d.mkdir(parents=True, exist_ok=True)
     return d
@@ -116,7 +117,7 @@ def _key_chunks(pairs, key):
 
 def _build_group(d, pairs, n_shards):
     """Competition features, once over S1 groups (i1) and once over candidate groups (i2). A whole-country
-    pandas groupby peaked high enough to reach the bad DIMM (D-012), so each pass runs over chunks of whole
+    pandas groupby has too high a memory peak (D-012), so each pass runs over chunks of whole
     groups, each checkpointed as group_<key>_KKKK.npy, then everything is assembled into group.npy."""
     inp = _base_columns(d, n_shards, GROUP_INPUTS)
     t = time.time()
@@ -169,6 +170,7 @@ def _build_group(d, pairs, n_shards):
 
 
 def s3_flags(s23: pd.DataFrame) -> np.ndarray:
+    """int8 flag per S2/S3 row: 1 when the record comes from Source 3."""
     return s23.entity_id.str.startswith("S3").values.astype(np.int8)
 
 

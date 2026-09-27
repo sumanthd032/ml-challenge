@@ -6,7 +6,7 @@
 #   bash run_ce.sh            (from code/business_entity_resolution/src)
 set -euo pipefail
 cd "$(dirname "$0")"
-PY=${PY:-C:/Users/Admin/anaconda3/python.exe}
+PY=${PY:-python}
 ART=../../../artifacts
 FEAT=${BER_FEATS:-$ART}
 FEAT=${FEAT//\\//}

@@ -5,7 +5,7 @@ and an S1 without matches may be a true singleton, where one false pair costs 1.
   a. India/US: no-address record, exact core name = S1's, core name carried by exactly 2 S1s of the country,
      best S1 after competition, p in [0.35, thr)                                      -> 0.96 true (1,871 pairs)
   b. France: same with the core name carried by >= 3 France S1s, p in [0.35, 0.8)       -> 0.96 true (853)
-  c. France: drop "disguised vocabulary swaps" — the record's core has one extra vocabulary word and the S1's name
+  c. France: drop "disguised vocabulary swaps": the record's core has one extra vocabulary word and the S1's name
      had compagnie/cie/etablissements (stripped as legal forms) that the record lacks   -> 0.33 true (607)
   d. France: acronym of the S1's core at the same house number and street, p in [0.05, 0.3) -> 0.98 true (668)
   e. per-source caps of the generator (train ground truth: <= 5 S2 and <= 6 S3 matches per S1): extra pairs of an
@@ -18,11 +18,17 @@ LEGALISH = {"co", "etablissements"}          # canonical compagnie / cie / ets /
 
 
 def name_count(s1: pd.DataFrame) -> np.ndarray:
+    """For each S1 row, the number of S1 records in the same country with the same core name."""
     key = pd.Series(s1.country.values + "|" + s1.core.values)
     return key.map(key.value_counts()).values
 
 
 def noaddr_exact(best, have, s1, s23, lo, hi, shared_min, shared_max):
+    """Corrections a/b: pairs of `best` to add.
+
+    Selects pairs with p in [lo, hi) whose S1 is in `have`, whose record has no address, whose core name equals the
+    S1's, and whose core name is carried by between shared_min and shared_max S1s. Returns (s1_id, cand_id) rows.
+    """
     i1, i2 = best.s1_id.values, best.cand_id.values
     n = name_count(s1)[i1]
     m = (best.p.values >= lo) & (best.p.values < hi) & np.isin(i1, list(have)) & (s23.raw_addr.values[i2] == "") & \
@@ -31,7 +37,11 @@ def noaddr_exact(best, have, s1, s23, lo, hi, shared_min, shared_max):
 
 
 def disguised_swaps(sel, s1, s23, R):
-    """Mask over sel: record core = S1 core + one vocabulary word, and the S1 name has a legal-ish word the record lacks."""
+    """Correction c: boolean mask over sel.
+
+    True where the record core = S1 core + one vocabulary word (R in [0.5, 1.1)) and the S1 name has a LEGALISH word
+    that the record name lacks.
+    """
     out = np.zeros(len(sel), dtype=bool)
     for k, (i, j) in enumerate(zip(sel.s1_id.values, sel.cand_id.values)):
         t1, t2 = set(s1.core.values[i].split()), set(s23.core.values[j].split())
@@ -48,6 +58,12 @@ def disguised_swaps(sel, s1, s23, R):
 
 
 def low_acronyms(best, have, s1, s23, V):
+    """Correction d: pairs of `best` to add.
+
+    Selects pairs with p in [0.05, 0.3), not flagged in the mask V, whose S1 is in `have`, whose name type is
+    "other" with an acronym relation between the cores (france_adapt._acronym), and whose house number and street
+    are equal. Returns (s1_id, cand_id) rows.
+    """
     import pairtype as pt
     from france_adapt import _acronym
     band = (best.p.values >= 0.05) & (best.p.values < 0.3) & ~V & np.isin(best.s1_id.values, list(have))

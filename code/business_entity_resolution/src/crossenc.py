@@ -53,7 +53,10 @@ def set_model(base: str, tag: str):
 
 
 def scores_path(split: str, tag: str = ""):
+    """Cross-encoder score parquet of `split` (ce_scores_<split>[_<tag>].parquet in FEAT_DIR)."""
     return config.FEAT_DIR / f"ce_scores_{split}{'_' + tag if tag else ''}.parquet"
+
+
 MAX_LEN = 96
 P_MIN = 0.002          # stage-1 probability floor of the pruned candidate set (= candidate_pairs.tsv)
 NEG_RANK = 6           # hard negatives: S1-side rank <= NEG_RANK by pair_sim or by bi-encoder cosine
@@ -61,6 +64,7 @@ DEV = "cuda" if torch.cuda.is_available() else "cpu"
 
 
 def record_text(df: pd.DataFrame) -> np.ndarray:
+    """Cross-encoder text of every row: "<name> | <addr>", with "no name" / "no address" for empty fields."""
     addr = np.where(df.addr.values != "", df.addr.values, "no address")
     name = np.where(df.name.values != "", df.name.values, "no name")
     return np.array([f"{n} | {a}" for n, a in zip(name, addr)], dtype=object)
@@ -104,6 +108,11 @@ def _batches(A, B, idx, tok, bs):
 
 
 def train(max_pairs, bs=256, lr=4e-5, eval_every=1000):
+    """Fine-tune BASE for one epoch on at most max_pairs rows of ce_train_pairs.parquet; saves to CE_DIR.
+
+    Every eval_every steps: log loss and accuracy on 40k validation pairs, and a checkpoint to CKPT that a rerun
+    resumes from.
+    """
     s1, s23 = load_split("train")
     t1, t2 = record_text(s1), record_text(s23)
     tr = pd.read_parquet(config.FEAT_DIR / "ce_train_pairs.parquet")
@@ -189,6 +198,7 @@ def train_pseudo(split, pairs_file, init_dir, bs=256, lr=2e-5, epochs=1, anchor=
     lossf = torch.nn.BCEWithLogitsLoss()
 
     def val_ll():
+        """Log loss on the 20k India/US validation pairs."""
         pv = predict(model, tok, vA, vB)
         return -np.mean(vy * np.log(np.clip(pv, 1e-6, 1)) + (1 - vy) * np.log(np.clip(1 - pv, 1e-6, 1)))
 
@@ -219,6 +229,7 @@ def train_pseudo(split, pairs_file, init_dir, bs=256, lr=2e-5, epochs=1, anchor=
 
 @torch.no_grad()
 def predict(model, tok, A, B, bs=1024):
+    """Match probabilities (sigmoid of the logit) of text pairs A[i], B[i], in input order."""
     model.eval()
     out = np.empty(len(A), dtype=np.float32)
     order = np.argsort([len(a) + len(b) for a, b in zip(A, B)], kind="stable")   # length bucketing
@@ -236,6 +247,11 @@ def pruned_pairs(split: str) -> pd.DataFrame:
 
 
 def score(split: str, chunk=1_000_000):
+    """Score the pruned candidate set of `split` ('val', 'test' or a test subset) with the model in CE_DIR.
+
+    Scores are checkpointed per chunk of `chunk` pairs (reruns skip finished chunks), then written to
+    scores_path(split, TAG) with a `ce` column.
+    """
     s1, s23 = load_split("train" if split == "val" else split)
     t1, t2 = record_text(s1), record_text(s23)
     pr = pruned_pairs(split)

@@ -16,3 +16,12 @@ __pycache__/
 # final submission package (large outputs)
 final_package/
 *_submission.zip
+
+# local working notes and scratch analyses (not part of the submission)
+CLAUDE.md
+.claude/
+migration/
+code/business_entity_resolution/src/final13/
+code/business_entity_resolution/src/final14b/
+code/business_entity_resolution/src/final15/
+

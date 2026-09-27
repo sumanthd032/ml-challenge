@@ -1,4 +1,4 @@
-"""Step 6 - test inference: features on test candidates, LightGBM scores, decision, output files.
+"""Step 6: test inference: features on test candidates, LightGBM scores, decision, output files.
 
 Features come from the resumable store (store.py): re-running after a crash continues where it stopped.
 
@@ -36,6 +36,7 @@ def write_lists(i1, i2, s1: pd.DataFrame, s23: pd.DataFrame, col: str, path):
 
 
 def main():
+    """Score (or load scores), select pairs, write the output lists and print per-country counts."""
     ap = argparse.ArgumentParser()
     ap.add_argument("--model", default="lgb_v1.txt")
     ap.add_argument("--alpha", type=float, default=1.0)
@@ -70,6 +71,7 @@ def main():
 
 
 def score_test(args, s1, s23, t):
+    """Stage 1 probabilities for every test candidate pair (row positions), saved to test_scores_<model>.parquet."""
     pairs = store.build("test", s1, s23)
     print(f"features for {len(pairs):,} pairs ({time.time() - t:.0f}s)", flush=True)
     model = lgb.Booster(model_file=str(config.ART_DIR / args.model))

@@ -64,6 +64,7 @@ def renorm():
 
 
 def make_split():
+    """Create the France-only test split SPLIT: normalized sources 1-3 and the pass A candidates of France S1s."""
     for s in (1, 2, 3):
         src = config.norm_path("test", s)
         df = pd.read_csv(src, sep="\t", dtype=str, keep_default_na=False, quoting=csv.QUOTE_NONE, escapechar="\\")
@@ -119,6 +120,7 @@ def pseudo2(files=("scores2_v1cexd.parquet", "fr3_scores2_v1cexd.parquet"), p2=0
 
 
 def stage1(model="lgb_v1.txt"):
+    """Build the SPLIT feature store and score it with a stage 1 model; writes <SPLIT>_scores_<model>.parquet."""
     import lightgbm as lgb
     import store
     t = time.time()

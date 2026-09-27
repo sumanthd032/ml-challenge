@@ -13,6 +13,7 @@ import config
 
 
 def main():
+    """Write the blended file to OUT_DIR/--out and print row and pair counts of the inputs and the output."""
     ap = argparse.ArgumentParser()
     ap.add_argument("--base", required=True)
     ap.add_argument("--alt", required=True)

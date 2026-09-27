@@ -12,7 +12,8 @@ import config
 
 
 def ids_to_rows(ids, index: pd.Index) -> np.ndarray:
-    r = index.get_indexer(ids)
+    """int32 row positions of `ids` in `index`; asserts that every id is present."""
+    r =index.get_indexer(ids)
     assert (r >= 0).all(), "id not found in split"
     return r.astype(np.int32)
 
@@ -30,6 +31,11 @@ def load_pass(path, s1_index: pd.Index, s23_index: pd.Index, batch=8_000_000) ->
 
 
 def merge_candidates(split: str, s1: pd.DataFrame, s23: pd.DataFrame) -> pd.DataFrame:
+    """Union of the pass A and pass B candidate parquets of `split`, sorted by (i1, i2).
+
+    Pass-specific columns get a fill value where the pair came only from the other pass (score 0, rank 99,
+    found flag 0). Pass B and emb_cos are included only when their files exist.
+    """
     s1_index, s23_index = pd.Index(s1.entity_id), pd.Index(s23.entity_id)
     A = load_pass(config.ART_DIR / f"{split}_cands_A.parquet", s1_index, s23_index)
     pb = config.ART_DIR / f"{split}_cands_B.parquet"
@@ -44,6 +50,7 @@ def merge_candidates(split: str, s1: pd.DataFrame, s23: pd.DataFrame) -> pd.Data
     del keys, ka, kb
 
     def scatter(pos, vals, fill, dtype):
+        """Column of len(m) filled with `fill`, with `vals` written at positions `pos`."""
         out = np.full(len(m), fill, dtype=dtype)
         out[pos] = vals
         return out

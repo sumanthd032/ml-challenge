@@ -14,9 +14,9 @@ The most likely cause is that more S2/S3 records have no S1 in the test set, i.e
 
 ## Ground truth structure
 * Singletons (no match): **5.6%** of train S1.
-* Matches per S1: mean ≈ 3.5, mode 3, max 11. S2 per S1 is 0–5 and S3 per S1 is 0–6.
+* Matches per S1: mean ≈ 3.5, mode 3, max 11. S2 per S1 is 0-5 and S3 per S1 is 0-6.
 * **Each S2/S3 id is matched to at most one S1** (7,638,365 matched ids, all unique).
-* Only 73–75% of S2/S3 records are matched to any S1. The rest are distractors.
+* Only 73-75% of S2/S3 records are matched to any S1. The rest are distractors.
 * Country of S1 and of its matches agree in **100%** of pairs, so blocking within country is safe.
 * No leakage: row order and numeric id have ~0 correlation with matches.
 
@@ -32,7 +32,7 @@ The most likely cause is that more S2/S3 records have no S1 in the test set, i.e
   (token-shuffled). Also `| www.gildasph.com` suffixes, `#77599` and `(ID: 123)` codes, `<<`/`--`/`***` prefixes.
 * Trade names: `X t/a Y`, `X dba Y`, `formerly`. Also **synthetic brand names** made from syllables
   (`Xyloecto`, `Lyraectoflux`, `Onyxdova`, `Fluxvio`) that share nothing with the S1 name. Only the address can link them.
-* Name exact-match (normalized, legal removed) rate among true pairs: 44–55%. Latin name token Jaccard median 0.67
+* Name exact-match (normalized, legal removed) rate among true pairs: 44-55%. Latin name token Jaccard median 0.67
   and 5th percentile 0.
 
 ## Address noise

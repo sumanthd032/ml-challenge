@@ -1,4 +1,4 @@
-"""Step 4 - build training pairs on the train split, fit LightGBM, validate with macro F0.5.
+"""Step 4: build training pairs on the train split, fit LightGBM, validate with macro F0.5.
 
 Validation protocol (see docs/DECISIONS.md, D-007):
   * S1 entities are split into train / valid by entity id (no S1 appears in both).
@@ -33,16 +33,22 @@ DROP = {"i1", "i2", "label", "is_valid"}
 
 
 def feature_columns(df):
+    """Model input columns: every column except ids, label and the validation flag."""
     return [c for c in df.columns if c not in DROP]
 
 
 def truth_rows(s1, s23) -> pd.DataFrame:
+    """Ground-truth pairs as row positions (columns s1_id, cand_id hold int32 rows, not string ids)."""
     gt = load_gt_pairs()
     return pd.DataFrame({"s1_id": ids_to_rows(gt.s1_id.values, pd.Index(s1.entity_id)),
                          "cand_id": ids_to_rows(gt.cand_id.values, pd.Index(s23.entity_id))})
 
 
 def make_feature_table(max_train_rows: int):
+    """Labelled feature table of the train split: all validation pairs plus at most max_train_rows fit pairs.
+
+    Returns (feats, s1, s23, role, truth); role is the per-S1 config.s1_role, truth comes from truth_rows.
+    """
     t = time.time()
     s1, s23 = load_split("train")
     role = s1.entity_id.map(config.s1_role).values
@@ -70,6 +76,7 @@ def make_feature_table(max_train_rows: int):
 
 
 def main():
+    """Fit stage 1, then write lgb_<tag>.txt, val_scores_<tag>.parquet and train_report_<tag>.json."""
     ap = argparse.ArgumentParser()
     ap.add_argument("--tag", default="v1")
     ap.add_argument("--max-train-rows", type=int, default=20_000_000)

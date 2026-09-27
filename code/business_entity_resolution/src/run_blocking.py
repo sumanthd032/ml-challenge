@@ -5,8 +5,6 @@ Usage: python run_blocking.py --split train [--sample-frac 0.2]
 import argparse
 import time
 
-import pandas as pd
-
 import config
 from blocking import run_blocking
 from data import load_split, load_gt_pairs
@@ -14,6 +12,7 @@ from metrics import blocking_recall
 
 
 def main():
+    """Run pass A, write <split>_cands_A[_sNN].parquet to ART_DIR, and on train print recall by rank cutoff."""
     ap = argparse.ArgumentParser()
     ap.add_argument("--split", default="train")
     ap.add_argument("--sample-frac", type=float, default=1.0, help="subsample S1 (train dev runs)")

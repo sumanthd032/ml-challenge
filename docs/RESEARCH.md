@@ -1,4 +1,4 @@
-# Methodology Research — Business Entity Resolution
+# Methodology Research: Business Entity Resolution
 
 This note surveys entity-resolution (ER) methodology and maps each idea onto *this* dataset
 (see `docs/EDA.md`). It ends with the chosen design and the reasons for it.
@@ -13,11 +13,11 @@ This note surveys entity-resolution (ER) methodology and maps each idea onto *th
 * **Metric:** macro F0.5 per S1 entity, singletons included (5.6% of train S1s).
   Per entity: `F0.5 = 1.25·TP / (0.25·n_true + n_pred)` (with `empty/empty = 1`).
   A false merge costs 4× more in the denominator than a missed match.
-* **Scale:** test = 1.73M S1 × 9.97M S2+S3 → 1.7e13 raw pairs. Blocking is mandatory.
+* **Scale:** test = 1.73M S1 × 9.97M S2+S3 -> 1.7e13 raw pairs. Blocking is mandatory.
 
 ## 2. Classic pipeline (Christen 2012; Papadakis et al. 2020 survey)
 
-`normalize → block (candidate generation) → compare (features) → classify → cluster/assign`.
+`normalize -> block (candidate generation) -> compare (features) -> classify -> cluster/assign`.
 
 ### 2.1 Normalization / standardization
 Canonicalize abbreviations (Rd/Road, Pvt/Private), strip legal suffixes into a separate field,
@@ -36,12 +36,12 @@ non-Latin scripts. Rules are domain knowledge, not external data, so they are al
 
 Findings from the literature that matter: (i) a union of complementary blockers beats any single
 one; (ii) *self-supervised / fine-tuned* bi-encoders beat off-the-shelf ones for ER blocking;
-(iii) retrieval in **both directions** (S1→S2/3 top-k, and S2/3→S1 top-k) raises recall cheaply.
+(iii) retrieval in **both directions** (S1->S2/3 top-k, and S2/3->S1 top-k) raises recall cheaply.
 
 ### 2.3 Matching
 | Approach | Examples | Notes |
 |---|---|---|
-| Probabilistic | Fellegi–Sunter, Splink | Interpretable, but assumes conditional independence |
+| Probabilistic | Fellegi-Sunter, Splink | Interpretable, but assumes conditional independence |
 | Feature-based ML | Magellan, GBDT over similarity features | Strong, fast, easy to calibrate; standard in industry ER |
 | Deep ER | DeepMatcher (2018), Ditto (2020, fine-tuned RoBERTa cross-encoder), HierGAT | Best accuracy on benchmarks, but cost is O(#pairs) transformer passes |
 | LLM matchers | GPT-style prompting | Too slow for ~40M pairs; license/size limits (≤8B, MIT/Apache) |
@@ -60,7 +60,7 @@ features plus the cosine similarity from a fine-tuned bi-encoder as one more fea
 * Relational / collective: rank of the pair in both directions and the margin to the best
   competing S1. This is powerful under the one-to-many constraint.
 
-### 2.5 Cross-script names (Hindi, Telugu, Gujarati, …)
+### 2.5 Cross-script names (Hindi, Telugu, Gujarati, ...)
 Options: (a) rule transliteration (unidecode / ITRANS), (b) a **dictionary learned from the
 training pairs** (align native tokens with English tokens of the matched S1 name), (c) multilingual
 embeddings (LaBSE, multilingual-MiniLM, mE5) fine-tuned on the pairs. (b) is precise for tokens
@@ -84,11 +84,11 @@ This handles singletons in a principled way.
   their S2/S3 records as distractors.
 
 ## 4. Chosen design (summary; details in ARCHITECTURE.md)
-1. Normalization with learned native-script→Latin token dictionary + rule fallback.
+1. Normalization with learned native-script->Latin token dictionary + rule fallback.
 2. Blocking = union of (a) fine-tuned multilingual bi-encoder kNN (both directions),
    (b) rare-token name/address inverted index, (c) exact keys (concatenated name, house number + street).
 3. LightGBM over ~50 pair features incl. bi-encoder cosine and competition/rank features.
-4. One-to-many assignment (each S2/S3 → at most its best S1) + expected-F0.5 top-k decision per S1.
+4. One-to-many assignment (each S2/S3 -> at most its best S1) + expected-F0.5 top-k decision per S1.
 5. Optional: small cross-encoder re-ranker on the uncertain band only.
 
 ## References

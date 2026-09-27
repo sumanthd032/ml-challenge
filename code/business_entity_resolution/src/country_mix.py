@@ -20,6 +20,7 @@ from predict import write_lists
 
 
 def main():
+    """Select pairs per country from its own score file and threshold, write OUT_DIR/--out, print counts."""
     ap = argparse.ArgumentParser()
     ap.add_argument("--spec", nargs="+", required=True, help="Country=scores.parquet:thr")
     ap.add_argument("--scores-dir", default=None)

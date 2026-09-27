@@ -1,4 +1,4 @@
-"""Blocking pass B - fine-tuned bi-encoder + exact GPU kNN.
+"""Blocking pass B: fine-tuned bi-encoder + exact GPU kNN.
 
 Model: sentence-transformers/all-MiniLM-L6-v2 (Apache-2.0, 22M params), fine-tuned with a symmetric
 in-batch-negatives InfoNCE loss on TRAIN ground-truth pairs of the 'ghost' S1 entities only (they are
@@ -31,25 +31,31 @@ DEV = "cuda" if torch.cuda.is_available() else "cpu"
 
 
 def record_text(df: pd.DataFrame) -> list:
+    """Encoder input text of every row: "<core>[ <alt>] | <addr>"."""
     alt = np.where(df.alt.values != "", " " + df.alt.values, "")
     return [f"{c}{a} | {ad}" for c, a, ad in zip(df.core.values, alt, df.addr.values)]
 
 
 def mean_pool(out, mask):
+    """Mean of token states over non-padding positions."""
     m = mask.unsqueeze(-1).to(out.dtype)
     return (out * m).sum(1) / m.sum(1).clamp(min=1e-6)
 
 
 class Encoder(torch.nn.Module):
+    """Transformer loaded from `path` with mean pooling and L2 normalization."""
+
     def __init__(self, path):
         super().__init__()
         self.bert = AutoModel.from_pretrained(path)
 
     def forward(self, ids, mask):
+        """Unit-norm embeddings of a tokenized batch."""
         return F.normalize(mean_pool(self.bert(input_ids=ids, attention_mask=mask).last_hidden_state, mask), dim=-1)
 
 
 def finetune(epochs=1, bs=512, lr=1e-4, max_pairs=1_500_000):
+    """Fine-tune BASE on at most max_pairs ground-truth pairs of ghost S1s; saves to MODEL_DIR."""
     s1, s23 = load_split("train")
     gt = load_gt_pairs()
     gt = gt[gt.s1_id.map(config.s1_role) == "ghost"]
@@ -120,6 +126,7 @@ def _train(A, B, s1_of, init, out_dir, epochs, bs, lr, order=None):
 
 @torch.no_grad()
 def encode(texts, model, tok, bs=2048):
+    """float16 embeddings of `texts`, in input order."""
     model.eval()
     out = np.empty((len(texts), model.bert.config.hidden_size), dtype=np.float16)
     order = np.argsort([len(t) for t in texts])        # length bucketing for speed
@@ -150,6 +157,12 @@ def gpu_topk(Q: np.ndarray, K: np.ndarray, k: int, max_bytes=2e9):
 
 
 def knn(split: str):
+    """Pass B for one split: forward top-K_FWD and reverse top-K_REV neighbours per country.
+
+    Embeddings are cached as <split>_emb_s1.npy / <split>_emb_s23.npy (reused when present). Writes
+    <split>_cands_B.parquet with (s1_id, cand_id, emb_score, emb_rank_fwd, emb_rank_rev); rank 99 = not found in
+    that direction.
+    """
     s1, s23 = load_split(split)
     tok = AutoTokenizer.from_pretrained(MODEL_DIR)
     model = Encoder(MODEL_DIR).to(DEV).half()

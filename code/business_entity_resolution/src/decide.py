@@ -1,4 +1,4 @@
-"""Step 5 - turn pair probabilities into final match lists.
+"""Step 5: turn pair probabilities into final match lists.
 
 1. One-to-many constraint: every S2/S3 record is linked to at most one S1 (true in 100% of train
    labels), so each candidate keeps only its highest-probability S1.

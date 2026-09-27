@@ -35,7 +35,8 @@ def strip_latin_accents(s: str) -> str:
 
 
 def basic_clean(s: str) -> str:
-    s = unicodedata.normalize("NFKC", s or "").lower()
+    """NFKC-normalize, lower-case and strip Latin accents; None becomes ''."""
+    s =unicodedata.normalize("NFKC", s or "").lower()
     s = strip_latin_accents(s)
     return s
 
@@ -45,6 +46,7 @@ _LEET = str.maketrans({"0": "o", "1": "l", "3": "e", "4": "a", "5": "s", "7": "t
 
 
 def fix_leet(tok: str) -> str:
+    """Map digits to look-alike letters in a token that is mostly letters; other tokens are returned unchanged."""
     if tok.isalpha() or tok.isdigit():
         return tok
     letters = sum(c.isalpha() for c in tok)

@@ -32,8 +32,10 @@ def s1_role(entity_id: str) -> str:
 
 
 def source_path(split: str, s: int) -> Path:
+    """Raw source file of `split` ('train' or 'test') and source number s (1, 2 or 3)."""
     return DATA_DIR / split / f"{split}_source{s}.tsv"
 
 
 def norm_path(split: str, s: int) -> Path:
+    """Normalized TSV of `split` and source s, written by preprocess.py."""
     return ART_DIR / f"{split}_s{s}_norm.tsv"

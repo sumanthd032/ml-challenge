@@ -20,6 +20,7 @@ from train import truth_rows
 
 
 def setup():
+    """Train-split lookups: (owner S1 row per S2/S3 record or -1, owner role or 'none', valid S1 rows, valid truth)."""
     s1, s23 = load_split("train")
     role = s1.entity_id.map(config.s1_role).values
     truth = truth_rows(s1, s23)
@@ -49,6 +50,7 @@ def f05(sel, owner, orole, va_ids, tv, w_noowner=1.94):
 
 
 def main():
+    """Print test-like F0.5, precision and recall of a validation score file over a grid of thresholds."""
     ap = argparse.ArgumentParser()
     ap.add_argument("scores")
     ap.add_argument("--w", type=float, default=1.94)

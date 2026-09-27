@@ -7,14 +7,16 @@ import config
 
 
 def load_norm(split: str, s: int) -> pd.DataFrame:
-    df = pd.read_csv(config.norm_path(split, s), sep="\t", dtype=str, keep_default_na=False,
+    """Normalized table of `split` and source s; all columns as str except `indic` (int8)."""
+    df =pd.read_csv(config.norm_path(split, s), sep="\t", dtype=str, keep_default_na=False,
                      quoting=csv.QUOTE_NONE, escapechar="\\")
     df["indic"] = df["indic"].astype("int8")
     return df
 
 
 def load_split(split: str):
-    s1 = load_norm(split, 1)
+    """(s1, s23): normalized Source 1, and Sources 2 and 3 concatenated in that order."""
+    s1 =load_norm(split, 1)
     s23 = pd.concat([load_norm(split, 2), load_norm(split, 3)], ignore_index=True)
     return s1, s23
 

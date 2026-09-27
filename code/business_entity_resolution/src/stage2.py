@@ -1,4 +1,4 @@
-"""Step 5b - second-stage re-scoring with cluster context.
+"""Step 5b: second-stage re-scoring with cluster context.
 
 Stage 1 scores every (S1, candidate) pair on its own. Many missed matches are obvious once the S1's other,
 confident matches are known: a record with a blank address whose name equals a confident sibling's, or a
@@ -18,6 +18,8 @@ Usage: python stage2.py fit --tag v1        (reads val_scores_v1.parquet, writes
        the model / output tag becomes v1ce
        add --ce2 <t> to also use a second cross-encoder (ce_scores_<split>_<t>.parquet): tag v1ce<t>
        add --x for name-ambiguity + twin features (name_features, twin.py): tag suffix x
+       add --dens for neighbourhood-density + pair-type features (D-018): tag suffix d
+       add --noghost to fit without ghost-owned validation records (D-020): tag suffix g
 """
 import argparse
 import json
@@ -131,6 +133,10 @@ DENS_FEATS = ["n_cc_a", "n_cc_c", "city_eq", "n_st_a", "pt_name", "pt_num", "pt_
 
 
 def density_features(df: pd.DataFrame, d: dict, s1: pd.DataFrame, s23: pd.DataFrame) -> pd.DataFrame:
+    """Add DENS_FEATS to df in place from density_codes output d; returns df.
+
+    Count and city features are -1 where the key (city, street tokens) is missing.
+    """
     import pairtype
     a, c = df.s1_id.values, df.cand_id.values
     df["n_cc_a"] = np.where(d["ok1"][a], d["cnt_cc"][d["cc1"][a]], -1).astype(np.float32)
@@ -146,6 +152,7 @@ def density_features(df: pd.DataFrame, d: dict, s1: pd.DataFrame, s23: pd.DataFr
 
 
 def attach_twin(df: pd.DataFrame, s1: pd.DataFrame, s23: pd.DataFrame) -> pd.DataFrame:
+    """Add the twin.py features as tw_<name> columns to df in place; returns df."""
     from twin import TWIN_NAMES, twin_features
     t = time.time()
     tw = twin_features(s1, s23, df.s1_id.values, df.cand_id.values)
@@ -196,13 +203,20 @@ def rescored(sc, df, p2):
 
 
 def model_tag_of(tag, use_ce, ce2, extra, dens=False, noghost=False):
+    """Stage 2 model tag: stage 1 tag plus one suffix per enabled feature group (ce, <ce2>, x, d, g)."""
     return tag + ("ce" if use_ce else "") + (ce2 or "") + ("x" if extra else "") + ("d" if dens else "") + \
         ("g" if noghost else "")
 
 
 def fit(tag, rounds, use_ce=False, ce2=None, extra=False, dens=False, noghost=False):
+    """Fit stage 2 on the stage 1 validation scores val_scores_<tag>.parquet.
+
+    Two folds split by S1 give out-of-fold scores (written to val_scores2_<model tag>.parquet) and the F0.5 report;
+    the final model is refit on all rows for 1.1 x the mean best iteration and saved as lgb2_<model tag>.txt.
+    """
     from twin import TWIN_NAMES
-    feats = FEATS + (CE_FEATS if use_ce else []) + (CE2_FEATS if ce2 else []) +         (NAME_FEATS + ["tw_" + n for n in TWIN_NAMES] if extra else []) + (DENS_FEATS if dens else [])
+    feats = FEATS + (CE_FEATS if use_ce else []) + (CE2_FEATS if ce2 else []) + \
+        (NAME_FEATS + ["tw_" + n for n in TWIN_NAMES] if extra else []) + (DENS_FEATS if dens else [])
     out_tag = model_tag_of(tag, use_ce, ce2, extra, dens, noghost)
     s1, s23 = load_split("train")
     role = s1.entity_id.map(config.s1_role).values
@@ -326,6 +340,7 @@ def apply(tag, use_ce=False, ce2=None, extra=False, n_chunks=12, split="test", c
 
 
 def main():
+    """CLI: `fit` on train validation scores or `apply` to a test split."""
     ap = argparse.ArgumentParser()
     ap.add_argument("cmd", choices=["fit", "apply"])
     ap.add_argument("--tag", default="v1")

@@ -27,6 +27,7 @@ def macro_f05(pred: pd.DataFrame, truth: pd.DataFrame, s1_ids) -> dict:
 
 
 def blocking_recall(cands: pd.DataFrame, truth: pd.DataFrame, s1_ids=None) -> dict:
+    """Share of true pairs present in `cands`, and candidate pairs per S1; restricted to s1_ids when given."""
     if s1_ids is not None:
         truth = truth[truth.s1_id.isin(s1_ids)]
         cands = cands[cands.s1_id.isin(s1_ids)]

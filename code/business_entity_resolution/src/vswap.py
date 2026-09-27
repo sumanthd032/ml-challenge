@@ -11,7 +11,6 @@ Evidence that these France pairs are false (docs/DECISIONS.md D-021): they expla
 their per-source count signature (an S1's other same-source matches / its other-source matches) is 0.934 / 1.078,
 exactly what records unrelated to the S1 give, vs 0.761 / 0.876 for true pairs, at every score level incl. p>=0.999;
 they are 38-85% of France one-word swaps vs 1-2% in India/US, where one-word swaps are generator noise (98.9% true).
-Found by an analysis agent (C:/Users/PC-07/Downloads/ber_scratch/agent_fr), rule unchanged.
 """
 import numpy as np
 import pandas as pd
@@ -19,7 +18,9 @@ from rapidfuzz import fuzz
 
 
 def noise_ratio(s1: pd.DataFrame, s23: pd.DataFrame, min_df: int = 200) -> pd.Series:
+    """R(w) for every core-name word w found in >= min_df S2/S3 cores and in at least one S1 core."""
     def df(cores):
+        """Number of cores that contain each word."""
         return pd.Series([t for c in cores for t in set(c.split())]).value_counts()
     d1, d23 = df(s1.core.values), df(s23.core.values)
     r = (d23 / len(s23)) / (d1.reindex(d23.index) / len(s1))
@@ -27,6 +28,7 @@ def noise_ratio(s1: pd.DataFrame, s23: pd.DataFrame, min_df: int = 200) -> pd.Se
 
 
 def vocab_swap_mask(i1, i2, s1, s23, R, lo=0.5, hi=1.1) -> np.ndarray:
+    """Boolean mask over the pairs (s1 row i1[k], s23 row i2[k]): True for a vocabulary swap, R(w) in [lo, hi)."""
     a, b = s1.core.values[i1], s23.core.values[i2]
     out = np.zeros(len(a), dtype=bool)
     for k, (x, y) in enumerate(zip(a, b)):
