@@ -219,8 +219,10 @@ def blend(a_file, b_file, out_file):
     print(f"blend {a_file} + {b_file} -> {out_file}: {len(a):,} rows")
 
 
-def assemble(iu_scores, iu_thr, fr_scores, fr_thr, out, iu_compete=1.0, fr_compete=1.0):
-    """India/US from the full-test score file, France from the testfr one; ids mapped back to the test split."""
+def assemble(iu_scores, iu_thr, fr_scores, fr_thr, out, iu_compete=1.0, fr_compete=1.0, vswap_norm=None):
+    """India/US from the full-test score file, France from the testfr one; ids mapped back to the test split.
+    vswap_norm: if set (e.g. 'testfr3'), drop France vocabulary swaps (vswap.py, D-021), judged on that split's
+    names (same row order as SPLIT)."""
     from decide import compete, expected_f_select
     from predict import write_lists
     t1, t23 = load_split("test")
@@ -230,6 +232,14 @@ def assemble(iu_scores, iu_thr, fr_scores, fr_thr, out, iu_compete=1.0, fr_compe
     sel_iu = expected_f_select(compete(sc, iu_compete), mode="thr", thr=iu_thr)
     fr = pd.read_parquet(config.FEAT_DIR / fr_scores, columns=["s1_id", "cand_id", "p"])
     sel_fr = expected_f_select(compete(fr, fr_compete), mode="thr", thr=fr_thr)
+    if vswap_norm:
+        import vswap
+        g1, g23 = load_split(vswap_norm)
+        assert (g1.entity_id.values == f1.entity_id.values).all() and (g23.entity_id.values == f23.entity_id.values).all()
+        m = vswap.vocab_swap_mask(sel_fr.s1_id.values, sel_fr.cand_id.values, g1, g23, vswap.noise_ratio(g1, g23))
+        print(f"France vocabulary swaps dropped: {int(m.sum()):,} of {len(sel_fr):,} pairs "
+              f"({sel_fr[m].s1_id.nunique():,} S1s)", flush=True)
+        sel_fr = sel_fr[~m]
     i1 = pd.Index(t1.entity_id).get_indexer(f1.entity_id.values[sel_fr.s1_id.values])
     i2 = pd.Index(t23.entity_id).get_indexer(f23.entity_id.values[sel_fr.cand_id.values])
     sel = pd.DataFrame({"s1_id": np.concatenate([sel_iu.s1_id.values, i1]),
@@ -278,9 +288,11 @@ if __name__ == "__main__":
     ap.add_argument("--iu-compete", type=float, default=1.0)
     ap.add_argument("--fr-compete", type=float, default=1.0)
     ap.add_argument("--cand-out", default="candidate_pairs_fa.tsv")
+    ap.add_argument("--vswap-norm", default=None, help="drop France vocabulary swaps judged on this split's names")
     a = ap.parse_args()
     {"split": make_split, "renorm": renorm, "pseudo": pseudo, "pseudo2": pseudo2, "stage1": stage1,
      "ce_pairs": ce_pairs, "ce_pairs_nn": ce_pairs_nn, "ce_pairs_nn2": lambda: ce_pairs_nn(pairs_name="pseudo2_pairs"),
      "blend": lambda: blend(*a.blend),
-     "assemble": lambda: assemble(a.iu_scores, a.iu_thr, a.fr_scores, a.fr_thr, a.out, a.iu_compete, a.fr_compete),
+     "assemble": lambda: assemble(a.iu_scores, a.iu_thr, a.fr_scores, a.fr_thr, a.out, a.iu_compete, a.fr_compete,
+                                  a.vswap_norm),
      "candidates": lambda: candidates_file(out=a.cand_out)}[a.cmd]()

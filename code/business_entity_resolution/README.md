@@ -42,6 +42,43 @@ python ../../../student_resource/utils/validate_submission.py \
 ```
 `learn_dict.py` must run before `preprocess.py`, because the normalizer loads `indic_dict.json`.
 
+## Full pipeline of the final submission (after the v1 steps above)
+Environment for all steps: `BER_FEATS=<feature dir>`, `HF_HUB_OFFLINE=1` once the base models are cached.
+```bash
+# cross-encoders (stage-2 features), see run_ce.sh / run_ce2.sh
+python crossenc.py pairs
+python crossenc.py train                                   # MiniLM-L6 -> artifacts/crossenc
+python crossenc.py score --split val ; python crossenc.py score --split test
+python crossenc.py train --base cross-encoder/ms-marco-MiniLM-L12-v2 --tag l12 --max-pairs 12000000
+python crossenc.py score --split val --tag l12 --base cross-encoder/ms-marco-MiniLM-L12-v2
+python crossenc.py score --split test --tag l12 --base cross-encoder/ms-marco-MiniLM-L12-v2
+# stage 2 (India/US model): context + both cross-encoders + twin/name + density features, no ghost rows (D-020)
+python stage2.py fit   --tag v1 --ce --ce2 l12 --x --dens --noghost
+python stage2.py apply --tag v1 --ce --ce2 l12 --x --dens --noghost --split test
+python stage2.py fit   --tag v1 --ce --x --dens            # France model (v1cexd)
+# France-only pipeline (D-018): split testfr, bi-encoder + cross-encoder self-training, IDF on train scale
+python france_adapt.py split
+python france_adapt.py pseudo
+python embed.py finetune_pseudo --split testfr --pairs <FEAT>/testfr_pseudo_pairs.parquet --model-dir biencoder_fr --epochs 2
+python embed.py knn --split testfr --model-dir biencoder_fr
+BER_IDF_SCALE=2 python france_adapt.py stage1
+python crossenc.py score --split testfr                   # variant A: original cross-encoder
+python france_adapt.py ce_pairs_nn
+python crossenc.py train_pseudo --split testfr --pairs <FEAT>/testfr_ce_pairs.parquet --init crossenc --tag fr3 --lr 1e-5 --anchor 2000000
+python crossenc.py score --split testfr --tag fr3         # variant D: self-trained cross-encoder
+python stage2.py apply --tag v1 --ce --x --dens --split testfr
+python stage2.py apply --tag v1 --ce --x --dens --split testfr --ce-sfx _fr3
+python france_adapt.py blend --blend testfr_scores2_v1cexd.parquet testfr_fr3_scores2_v1cexd.parquet testfr_blendAD_scores2.parquet
+# final files: India/US thr + compete weight, France thr (docs/SUBMISSIONS.md lists the exact settings per file)
+python france_adapt.py assemble --iu-scores test_scores2_v1cel12xdg.parquet --iu-thr 0.5 --iu-compete 2 \
+    --fr-scores testfr_blendAD_scores2.parquet --fr-thr 0.8 --out matching_results.tsv
+python france_adapt.py candidates     # -> output/candidate_pairs_fa.tsv (France rows = the testfr candidate set);
+                                      # copy it over output/candidate_pairs.tsv afterwards (it streams from that file)
+```
+`testlike.py` scores validation the way the test sees it (D-020); `decide.compete` enforces one S1 per record.
+Checkpointed steps (stage-2 parts, cross-encoder score parts, embeddings) are reused by name: delete them before
+rerunning a step with a changed model under the same tag.
+
 ## Outputs
 * `output/candidate_pairs.tsv`: exactly the pairs the LightGBM model scores (union of both blocking passes).
 * `output/matching_results.tsv`: final matches, one row per test S1, always a subset of the candidates.
