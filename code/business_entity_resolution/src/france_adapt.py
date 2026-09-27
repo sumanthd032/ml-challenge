@@ -219,10 +219,40 @@ def blend(a_file, b_file, out_file):
     print(f"blend {a_file} + {b_file} -> {out_file}: {len(a):,} rows")
 
 
-def assemble(iu_scores, iu_thr, fr_scores, fr_thr, out, iu_compete=1.0, fr_compete=1.0, vswap_norm=None):
+def _acronym(a_core: str, c_core: str) -> bool:
+    ini = "".join(w[0] for w in a_core.split() if w)
+    c = c_core.replace(" ", "")
+    return 2 <= len(c) <= 6 and c.isalpha() and c == ini
+
+
+def recover_mask(best, lo_p, hi_p, g1, g23, V):
+    """France pairs below the threshold in categories the test-set count signature measures as >= 92% true (D-022):
+    acronym or noise-word swap at the same house number (p >= 0.3), exact name with no house number or name plus an
+    extra word at the same number (p >= 0.5). best: best-S1 pairs after competition; V: vocabulary-swap mask."""
+    import pairtype as pt
+    band = (best.p.values >= lo_p) & (best.p.values < hi_p) & ~V
+    idx = np.flatnonzero(band)
+    ty = pt.pair_types(g1, g23, best.s1_id.values[idx], best.cand_id.values[idx])
+    a, c = g1.core.values[best.s1_id.values[idx]], g23.core.values[best.cand_id.values[idx]]
+    acr = np.array([_acronym(x, y) for x, y in zip(a, c)], dtype=bool)
+    name, num, p = ty[:, 0], ty[:, 1], best.p.values[idx]
+    NT, UT = pt.NAME_TYPES, pt.NUM_TYPES
+    same_num = num == UT.index("eq")
+    keep = ((name == NT.index("other")) & acr & same_num) | \
+           ((name == NT.index("swap1")) & same_num) | \
+           ((name == NT.index("eq")) & (num == UT.index("c_none")) & (p >= 0.5)) | \
+           ((name == NT.index("extra")) & same_num & (p >= 0.5))
+    out = np.zeros(len(best), dtype=bool)
+    out[idx[keep]] = True
+    return out
+
+
+def assemble(iu_scores, iu_thr, fr_scores, fr_thr, out, iu_compete=1.0, fr_compete=1.0, vswap_norm=None,
+             fr_recover=False):
     """India/US from the full-test score file, France from the testfr one; ids mapped back to the test split.
     vswap_norm: if set (e.g. 'testfr3'), drop France vocabulary swaps (vswap.py, D-021), judged on that split's
-    names (same row order as SPLIT)."""
+    names (same row order as SPLIT). fr_recover: add France pairs from p 0.3 .. fr_thr in the categories of
+    recover_mask (D-022; needs vswap_norm)."""
     from decide import compete, expected_f_select
     from predict import write_lists
     t1, t23 = load_split("test")
@@ -236,10 +266,19 @@ def assemble(iu_scores, iu_thr, fr_scores, fr_thr, out, iu_compete=1.0, fr_compe
         import vswap
         g1, g23 = load_split(vswap_norm)
         assert (g1.entity_id.values == f1.entity_id.values).all() and (g23.entity_id.values == f23.entity_id.values).all()
-        m = vswap.vocab_swap_mask(sel_fr.s1_id.values, sel_fr.cand_id.values, g1, g23, vswap.noise_ratio(g1, g23))
+        R = vswap.noise_ratio(g1, g23)
+        m = vswap.vocab_swap_mask(sel_fr.s1_id.values, sel_fr.cand_id.values, g1, g23, R)
         print(f"France vocabulary swaps dropped: {int(m.sum()):,} of {len(sel_fr):,} pairs "
               f"({sel_fr[m].s1_id.nunique():,} S1s)", flush=True)
         sel_fr = sel_fr[~m]
+        if fr_recover:
+            from decide import assign_best_s1
+            best = assign_best_s1(compete(fr, fr_compete)).reset_index(drop=True)
+            best = best[(best.p >= 0.3) & (best.p < fr_thr)].reset_index(drop=True)
+            Vb = vswap.vocab_swap_mask(best.s1_id.values, best.cand_id.values, g1, g23, R)
+            add = best[recover_mask(best, 0.3, fr_thr, g1, g23, Vb)][["s1_id", "cand_id"]]
+            print(f"France recovered below threshold: {len(add):,} pairs", flush=True)
+            sel_fr = pd.concat([sel_fr[["s1_id", "cand_id"]], add], ignore_index=True)
     i1 = pd.Index(t1.entity_id).get_indexer(f1.entity_id.values[sel_fr.s1_id.values])
     i2 = pd.Index(t23.entity_id).get_indexer(f23.entity_id.values[sel_fr.cand_id.values])
     sel = pd.DataFrame({"s1_id": np.concatenate([sel_iu.s1_id.values, i1]),
@@ -289,10 +328,11 @@ if __name__ == "__main__":
     ap.add_argument("--fr-compete", type=float, default=1.0)
     ap.add_argument("--cand-out", default="candidate_pairs_fa.tsv")
     ap.add_argument("--vswap-norm", default=None, help="drop France vocabulary swaps judged on this split's names")
+    ap.add_argument("--fr-recover", action="store_true", help="add high-precision France categories below thr (D-022)")
     a = ap.parse_args()
     {"split": make_split, "renorm": renorm, "pseudo": pseudo, "pseudo2": pseudo2, "stage1": stage1,
      "ce_pairs": ce_pairs, "ce_pairs_nn": ce_pairs_nn, "ce_pairs_nn2": lambda: ce_pairs_nn(pairs_name="pseudo2_pairs"),
      "blend": lambda: blend(*a.blend),
      "assemble": lambda: assemble(a.iu_scores, a.iu_thr, a.fr_scores, a.fr_thr, a.out, a.iu_compete, a.fr_compete,
-                                  a.vswap_norm),
+                                  a.vswap_norm, a.fr_recover),
      "candidates": lambda: candidates_file(out=a.cand_out)}[a.cmd]()
