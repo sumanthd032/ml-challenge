@@ -257,8 +257,15 @@ def fill_empty(best: pd.DataFrame, sel: pd.DataFrame, t0: float) -> pd.DataFrame
     return top[top.p >= t0][["s1_id", "cand_id"]]
 
 
+def _dedupe_add(sel, add):
+    k = set(zip(sel.s1_id.values, sel.cand_id.values))
+    taken = set(sel.cand_id.values)
+    add = add[[(a, b) not in k and b not in taken for a, b in zip(add.s1_id.values, add.cand_id.values)]]
+    return pd.concat([sel[["s1_id", "cand_id"]], add[["s1_id", "cand_id"]]], ignore_index=True), len(add)
+
+
 def assemble(iu_scores, iu_thr, fr_scores, fr_thr, out, iu_compete=1.0, fr_compete=1.0, vswap_norm=None,
-             fr_recover=False, iu_fill=None):
+             fr_recover=False, iu_fill=None, refine=False):
     """India/US from the full-test score file, France from the testfr one; ids mapped back to the test split.
     vswap_norm: if set (e.g. 'testfr3'), drop France vocabulary swaps (vswap.py, D-021), judged on that split's
     names (same row order as SPLIT). fr_recover: add France pairs from p 0.3 .. fr_thr in the categories of
@@ -275,6 +282,18 @@ def assemble(iu_scores, iu_thr, fr_scores, fr_thr, out, iu_compete=1.0, fr_compe
         add = fill_empty(assign_best_s1(compete(sc, iu_compete)), sel_iu, iu_fill)
         print(f"India/US empty S1s filled with their best candidate (p >= {iu_fill}): {len(add):,}", flush=True)
         sel_iu = pd.concat([sel_iu[["s1_id", "cand_id"]], add], ignore_index=True)
+    if refine:
+        import refine as rf
+        from decide import assign_best_s1
+        best_iu = assign_best_s1(compete(sc, iu_compete))
+        best_iu = best_iu[best_iu.p >= 0.3].reset_index(drop=True)
+        add = rf.noaddr_exact(best_iu, set(sel_iu.s1_id.values), t1, t23, 0.35, iu_thr, 2, 2)
+        sel_iu, n_add = _dedupe_add(sel_iu, add)
+        n0 = len(sel_iu)
+        sel_iu = rf.cap(sel_iu, best_iu.set_index(["s1_id", "cand_id"]).p, t23)
+        print(f"refine India/US: +{n_add:,} no-address exact-name pairs (name on 2 S1s), -{n0 - len(sel_iu):,} over caps",
+              flush=True)
+        del best_iu
     fr = pd.read_parquet(config.FEAT_DIR / fr_scores, columns=["s1_id", "cand_id", "p"])
     sel_fr = expected_f_select(compete(fr, fr_compete), mode="thr", thr=fr_thr)
     if vswap_norm:
@@ -294,6 +313,23 @@ def assemble(iu_scores, iu_thr, fr_scores, fr_thr, out, iu_compete=1.0, fr_compe
             add = best[recover_mask(best, 0.3, fr_thr, g1, g23, Vb)][["s1_id", "cand_id"]]
             print(f"France recovered below threshold: {len(add):,} pairs", flush=True)
             sel_fr = pd.concat([sel_fr[["s1_id", "cand_id"]], add], ignore_index=True)
+        if refine:
+            import refine as rf
+            from decide import assign_best_s1
+            ball = assign_best_s1(compete(fr, fr_compete)).reset_index(drop=True)
+            ball = ball[ball.p >= 0.05].reset_index(drop=True)
+            Va = vswap.vocab_swap_mask(ball.s1_id.values, ball.cand_id.values, g1, g23, R)
+            have = set(sel_fr.s1_id.values)
+            dm = rf.disguised_swaps(sel_fr, g1, g23, R)
+            sel_fr = sel_fr[~dm].reset_index(drop=True)
+            add_b = rf.noaddr_exact(ball[~Va], have, g1, g23, 0.35, fr_thr, 3, 10 ** 9)
+            add_d = rf.low_acronyms(ball, have, g1, g23, Va)
+            sel_fr, nb = _dedupe_add(sel_fr, add_b)
+            sel_fr, nd = _dedupe_add(sel_fr, add_d)
+            n0 = len(sel_fr)
+            sel_fr = rf.cap(sel_fr, ball.set_index(["s1_id", "cand_id"]).p, f23)
+            print(f"refine France: -{int(dm.sum()):,} disguised swaps, +{nb:,} no-address exact-name (name on 3+ S1s), "
+                  f"+{nd:,} low-score acronyms, -{n0 - len(sel_fr):,} over caps", flush=True)
     i1 = pd.Index(t1.entity_id).get_indexer(f1.entity_id.values[sel_fr.s1_id.values])
     i2 = pd.Index(t23.entity_id).get_indexer(f23.entity_id.values[sel_fr.cand_id.values])
     sel = pd.DataFrame({"s1_id": np.concatenate([sel_iu.s1_id.values, i1]),
@@ -345,10 +381,11 @@ if __name__ == "__main__":
     ap.add_argument("--vswap-norm", default=None, help="drop France vocabulary swaps judged on this split's names")
     ap.add_argument("--fr-recover", action="store_true", help="add high-precision France categories below thr (D-022)")
     ap.add_argument("--iu-fill", type=float, default=None, help="India/US: best candidate of empty S1s if p >= this (D-023)")
+    ap.add_argument("--refine", action="store_true", help="small test-measured corrections of refine.py (D-024)")
     a = ap.parse_args()
     {"split": make_split, "renorm": renorm, "pseudo": pseudo, "pseudo2": pseudo2, "stage1": stage1,
      "ce_pairs": ce_pairs, "ce_pairs_nn": ce_pairs_nn, "ce_pairs_nn2": lambda: ce_pairs_nn(pairs_name="pseudo2_pairs"),
      "blend": lambda: blend(*a.blend),
      "assemble": lambda: assemble(a.iu_scores, a.iu_thr, a.fr_scores, a.fr_thr, a.out, a.iu_compete, a.fr_compete,
-                                  a.vswap_norm, a.fr_recover, a.iu_fill),
+                                  a.vswap_norm, a.fr_recover, a.iu_fill, a.refine),
      "candidates": lambda: candidates_file(out=a.cand_out)}[a.cmd]()
