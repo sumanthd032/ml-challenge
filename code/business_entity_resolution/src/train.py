@@ -1,6 +1,6 @@
 """Step 4: build training pairs on the train split, fit LightGBM, validate with macro F0.5.
 
-Validation protocol (see docs/DECISIONS.md, D-007):
+Validation protocol (decision D-007):
   * S1 entities are split into train / valid by entity id (no S1 appears in both).
   * A "ghost" fraction of S1 entities is removed from the S1 pool entirely: their S2/S3 records
     stay as distractors whose true S1 does not exist, mimicking the higher S2/S3-per-S1 ratio of

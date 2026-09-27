@@ -2,7 +2,7 @@
 
 The pipeline links Source-2 and Source-3 business records to deduplicated Source-1 entities. Each record has at most
 one owner; an entity can have many records or none. All stages run within a country, because the country agrees for
-every true pair. Decision numbers (D-xxx) refer to `docs/DECISIONS.md`, which records the measured effect of each
+every true pair. Decision numbers (D-xxx) are listed in the decision-label table at the end of this document, which names each
 choice.
 
 ## End-to-end flow
@@ -142,3 +142,40 @@ side of the F0.5 break-even (D-024 to D-030).
 * Features run at about 47 microseconds per pair per process. Every long step checkpoints to disk and resumes after
   a crash.
 * The expensive models (cross-encoders, stage 2) see 5.81 pairs per entity instead of 88.8.
+
+## Decision labels
+
+Comments in the code and the documents refer to design decisions by label. Each label names one change that was measured before it was kept.
+
+| Label | Decision |
+|---|---|
+| D-001 | Python environment: anaconda3 + CUDA torch |
+| D-002 | Block within country |
+| D-003 | Normalization is rule-based domain knowledge, no external data |
+| D-004 | One transliterator for all Indic scripts |
+| D-005 | Blocking v1 = IDF-weighted sparse token retrieval in both directions |
+| D-006 | One-to-many assignment + expected-F0.5 decision |
+| D-007 | Validation mimics the test distractor rate ("ghost" S1s) |
+| D-008 | Learned native-token dictionary beats rule transliteration |
+| D-009 | Blocking pass B: fine-tuned MiniLM bi-encoder + exact GPU top-k |
+| D-010 | Features computed for all non-ghost S1s |
+| D-011 | Pairs held as int32 row positions; feature tables on a separate drive |
+| D-012 | Resumable, sharded feature store |
+| D-013 | Stage-2 name-ambiguity and twin features |
+| D-014 | France: bogus state codes from French words, left unfixed |
+| D-015 | Per-country blend of submissions |
+| D-016 | France threshold probes on the leaderboard |
+| D-017 | France overconfidence comes from the cross-encoders; candidate competition |
+| D-018 | France: covariate shift in the bi-encoder features; France-only pipeline with an adapted encoder |
+| D-019 | France text normalization fixes |
+| D-020 | The ghost validation (D-007) does not match the test; test-like validation |
+| D-021 | France "vocabulary swaps" are false matches |
+| D-022 | Label-free calibration on the test set with the count signature |
+| D-023 | First-match rule for S1s without predictions |
+| D-024 | Final small corrections, all measured on the test set |
+| D-025 | Extra last submission: contested marginal India/US pairs, France acronym leftovers |
+| D-026 | Stage-3 correction model and France contested pairs |
+| D-027 | Coverage check vs the generator; legal-form removals and France no-house-number additions |
+| D-028 | Final error analysis in three areas with independent re-checks; France noise-word descriptor swaps |
+| D-029 | Bigger multilingual cross-encoder and the last France pools: negative |
+| D-030 | Last round: France descriptor-swap decoys (removed) and India/US low-label cells p 0.5-0.6 |

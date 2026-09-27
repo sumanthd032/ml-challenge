@@ -7,7 +7,7 @@ S1-name vocabulary rather than generator noise. Noise ratio R(w) = (share of the
 S2/S3 names only (fils 1.54, services 2.38, developpement 10.7, associes 77), vocabulary words occur at the S1 rate
 (club 0.84, amicale 0.86, comite 0.87, ecole 0.83). R in [0.5, 1.1) = vocabulary.
 
-Evidence that these France pairs are false (docs/DECISIONS.md D-021): they explain the drop from submission 8 to 9;
+Evidence that these France pairs are false (decision D-021): they explain the drop from submission 8 to 9;
 their per-source count signature (an S1's other same-source matches / its other-source matches) is 0.934 / 1.078,
 exactly what records unrelated to the S1 give, vs 0.761 / 0.876 for true pairs, at every score level incl. p>=0.999;
 they are 38-85% of France one-word swaps vs 1-2% in India/US, where one-word swaps are generator noise (98.9% true).

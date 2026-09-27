@@ -4,7 +4,7 @@ Links Source-2 and Source-3 business records to the deduplicated Source-1 entiti
 Stages: normalization -> two-pass blocking (IDF sparse tokens and fine-tuned bi-encoder kNN) -> stage-1 LightGBM,
 which also prunes the candidate set to 5.81 pairs per entity -> cross-encoders -> stage-2 LightGBM -> one-to-many
 decision with candidate competition. French entities, absent from training, go through an adapted branch
-(`france_adapt.py`). Design: `../../docs/ARCHITECTURE.md`; decisions and measured effects: `../../docs/DECISIONS.md`.
+(`france_adapt.py`). Design: `../../docs/ARCHITECTURE.md`.
 
 ## Environment
 * Python 3.13, Windows 11 or Linux. Tested with 64 GB and 128 GB RAM; steps with a large in-memory peak are chunked

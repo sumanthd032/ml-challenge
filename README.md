@@ -38,7 +38,6 @@ flowchart LR
 |---|---|
 | `code/business_entity_resolution/` | Pipeline code, `requirements.txt`, run instructions (`README.md`) |
 | `docs/ARCHITECTURE.md` | Pipeline diagrams, candidate funnel, stage descriptions, module map |
-| `docs/DECISIONS.md` | Decision log D-001 to D-030 with measured effects |
 | `docs/SUBMISSIONS.md` | Every experiment and leaderboard submission with its commit |
 | `docs/EDA.md`, `docs/RESEARCH.md` | Data findings and literature notes |
 | `Documentation_template.md` | Two-page approach document for the submission |

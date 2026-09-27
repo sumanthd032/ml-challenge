@@ -1,6 +1,6 @@
 """Twin features: how a candidate *differs* from the S1 record, not how similar it is.
 
-Error analysis of stage 1 (docs/DECISIONS.md D-013) showed that most confident false merges are "twins":
+Error analysis of stage 1 (decision D-013) showed that most confident false merges are "twins":
 a single S2/S3 record of another business copied from the S1 with a few edits, typically
   * another legal form   ("Private Limited" -> "Limited", "SA" -> "SARL", none -> "Inc"),
   * a swapped name word  ("Bordeaux Union SASU" -> "Bordeaux Club SASU"),

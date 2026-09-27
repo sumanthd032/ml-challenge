@@ -175,8 +175,8 @@ measured the fixes on the test set itself.
 `predict.py`, `crossenc.py pairs|train|score`, `stage2.py fit|apply`; France: `france_adapt.py`,
 `embed.py finetune_pseudo`, `crossenc.py train_pseudo`; decision and corrections: `france_adapt.py assemble`
 (`vswap.py`, `refine.py`, `testlike.py`) and `apply_corrections.py` with `corrections/corrections.tsv`
-(D-025 to D-030); candidate file: `candidate_set.py`. Design: `docs/ARCHITECTURE.md`; decision log with measured
-effects: `docs/DECISIONS.md` (D-001 to D-030); experiments and submissions: `docs/SUBMISSIONS.md`.
+(D-025 to D-030); candidate file: `candidate_set.py`. Design: `docs/ARCHITECTURE.md`; decision labels (D-001 to D-030):
+`docs/ARCHITECTURE.md`; experiments and submissions: `docs/SUBMISSIONS.md`.
 
 ### B. Additional Results
 Two leaderboard regressions shaped the method: 0.984582 (France text fixes let more vocabulary swaps through, which

@@ -1,4 +1,4 @@
-"""Apply the test-set corrections (docs/DECISIONS.md D-025 to D-030) to the pipeline's matching file.
+"""Apply the test-set corrections (decisions D-025 to D-030) to the pipeline's matching file.
 
 `france_adapt.py assemble` writes the model-based submission (leaderboard 0.988865). A series of error analyses
 on the test set, measured with the label-free count signature (D-021, D-022) and checked on labelled validation where
