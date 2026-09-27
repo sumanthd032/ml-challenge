@@ -1,6 +1,6 @@
 # ML Challenge 2026: Business Entity Resolution Solution
 
-**Team Name:** [Your Team Name]  
+**Team Name:** Nothing  
 **Team Leader:** Sumantha  
 **Team Members:** Syed Ayaan, Shreyas S, Sharan Malali  
 **Institution:** BMS College of Engineering  
