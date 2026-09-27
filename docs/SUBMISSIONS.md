@@ -40,3 +40,4 @@ submission can be reproduced (`git checkout <commit>` + README steps).
 | 9 | 2026-09-27 | 7d4d86d | v1-F3blend-FR80 | 0.984582 | France text fixes (D-019): -0.000234 vs #8; traced to France "vocabulary swaps" (D-021) |
 | 10 | 2026-09-27 | fcaa89c | v1-VR-IUg50 | **0.988833** | #8 minus 26,942 France vocabulary swaps (D-021) + 9,192 recovered France pairs (D-022) + India/US no-ghost stage 2 thr 0.5 compete 2 (D-020): +0.00402 over #8 |
 | 11 | 2026-09-27 | 86a1726 | v1-VRF-IUg45 | 0.988556 | #10 + India/US thr 0.45 and first-match rule (D-023): -0.00028; the test-like val gain did not transfer in the low-probability region |
+| 12 | 2026-09-27 | 18d4941 | v1-VRR-IUg50 | **0.988865** | #10 + D-024 test-measured corrections: +0.000032 (expected +0.00016). **Final submission (best and last).** |

@@ -69,9 +69,13 @@ python crossenc.py score --split testfr --tag fr3         # variant D: self-trai
 python stage2.py apply --tag v1 --ce --x --dens --split testfr
 python stage2.py apply --tag v1 --ce --x --dens --split testfr --ce-sfx _fr3
 python france_adapt.py blend --blend testfr_scores2_v1cexd.parquet testfr_fr3_scores2_v1cexd.parquet testfr_blendAD_scores2.parquet
-# final files: India/US thr + compete weight, France thr (docs/SUBMISSIONS.md lists the exact settings per file)
+# France names with the France normalization fixes (used to judge vocabulary swaps, D-021): split testfr3
+BER_FR_SPLIT=testfr3 python france_adapt.py renorm
+# final file (submission 12, public 0.988865): India/US thr 0.5 + compete 2; France thr 0.8, vocabulary swaps
+# removed (vswap.py), high-precision categories recovered, test-measured corrections (refine.py)
 python france_adapt.py assemble --iu-scores test_scores2_v1cel12xdg.parquet --iu-thr 0.5 --iu-compete 2 \
-    --fr-scores testfr_blendAD_scores2.parquet --fr-thr 0.8 --out matching_results.tsv
+    --fr-scores testfr_blendAD_scores2.parquet --fr-thr 0.8 --vswap-norm testfr3 --fr-recover --refine \
+    --out matching_results.tsv
 python france_adapt.py candidates     # -> output/candidate_pairs_fa.tsv (France rows = the testfr candidate set);
                                       # copy it over output/candidate_pairs.tsv afterwards (it streams from that file)
 ```

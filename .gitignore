@@ -12,3 +12,7 @@ __pycache__/
 
 # git bundle backups
 *.bundle
+
+# final submission package (large outputs)
+final_package/
+*_submission.zip
