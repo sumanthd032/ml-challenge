@@ -247,8 +247,18 @@ def recover_mask(best, lo_p, hi_p, g1, g23, V):
     return out
 
 
+def fill_empty(best: pd.DataFrame, sel: pd.DataFrame, t0: float) -> pd.DataFrame:
+    """D-023: for S1s with no selected pair, add their best candidate (best-S1 pairs after competition) if p >= t0.
+    A first correct match lifts an S1's F0.5 from 0 to ~0.4-1.0, while a wrong one costs only on true singletons,
+    so the bar for the first match is lower. Test-like val (India/US): thr 0.5 -> 0.99157, + fill 0.2 -> 0.99169;
+    thr 0.45 -> 0.99165, + fill 0.2 -> 0.99177."""
+    have = set(sel.s1_id.values)
+    top = best[~best.s1_id.isin(have)].sort_values("p", ascending=False).drop_duplicates("s1_id")
+    return top[top.p >= t0][["s1_id", "cand_id"]]
+
+
 def assemble(iu_scores, iu_thr, fr_scores, fr_thr, out, iu_compete=1.0, fr_compete=1.0, vswap_norm=None,
-             fr_recover=False):
+             fr_recover=False, iu_fill=None):
     """India/US from the full-test score file, France from the testfr one; ids mapped back to the test split.
     vswap_norm: if set (e.g. 'testfr3'), drop France vocabulary swaps (vswap.py, D-021), judged on that split's
     names (same row order as SPLIT). fr_recover: add France pairs from p 0.3 .. fr_thr in the categories of
@@ -260,6 +270,11 @@ def assemble(iu_scores, iu_thr, fr_scores, fr_thr, out, iu_compete=1.0, fr_compe
     sc = pd.read_parquet(config.FEAT_DIR / iu_scores, columns=["s1_id", "cand_id", "p"])
     sc = sc[t1.country.values[sc.s1_id.values] != COUNTRY]
     sel_iu = expected_f_select(compete(sc, iu_compete), mode="thr", thr=iu_thr)
+    if iu_fill is not None:
+        from decide import assign_best_s1
+        add = fill_empty(assign_best_s1(compete(sc, iu_compete)), sel_iu, iu_fill)
+        print(f"India/US empty S1s filled with their best candidate (p >= {iu_fill}): {len(add):,}", flush=True)
+        sel_iu = pd.concat([sel_iu[["s1_id", "cand_id"]], add], ignore_index=True)
     fr = pd.read_parquet(config.FEAT_DIR / fr_scores, columns=["s1_id", "cand_id", "p"])
     sel_fr = expected_f_select(compete(fr, fr_compete), mode="thr", thr=fr_thr)
     if vswap_norm:
@@ -329,10 +344,11 @@ if __name__ == "__main__":
     ap.add_argument("--cand-out", default="candidate_pairs_fa.tsv")
     ap.add_argument("--vswap-norm", default=None, help="drop France vocabulary swaps judged on this split's names")
     ap.add_argument("--fr-recover", action="store_true", help="add high-precision France categories below thr (D-022)")
+    ap.add_argument("--iu-fill", type=float, default=None, help="India/US: best candidate of empty S1s if p >= this (D-023)")
     a = ap.parse_args()
     {"split": make_split, "renorm": renorm, "pseudo": pseudo, "pseudo2": pseudo2, "stage1": stage1,
      "ce_pairs": ce_pairs, "ce_pairs_nn": ce_pairs_nn, "ce_pairs_nn2": lambda: ce_pairs_nn(pairs_name="pseudo2_pairs"),
      "blend": lambda: blend(*a.blend),
      "assemble": lambda: assemble(a.iu_scores, a.iu_thr, a.fr_scores, a.fr_thr, a.out, a.iu_compete, a.fr_compete,
-                                  a.vswap_norm, a.fr_recover),
+                                  a.vswap_norm, a.fr_recover, a.iu_fill),
      "candidates": lambda: candidates_file(out=a.cand_out)}[a.cmd]()
