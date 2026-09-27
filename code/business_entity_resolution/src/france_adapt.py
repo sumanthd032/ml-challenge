@@ -208,6 +208,17 @@ def ce_pairs_nn(n_neg=2, k_nn=5, p1_new=0.9, type_filter=False, pairs_name="pseu
     torch.cuda.empty_cache()
 
 
+def blend(a_file, b_file, out_file):
+    """Mean of two stage-2 score files of this split (D-018: variant A = original cross-encoder, variant D =
+    self-trained cross-encoder). Both come from the same stage-1 file, so rows must align exactly."""
+    a = pd.read_parquet(config.FEAT_DIR / a_file)
+    b = pd.read_parquet(config.FEAT_DIR / b_file, columns=["s1_id", "cand_id", "p"])
+    assert (a.s1_id.values == b.s1_id.values).all() and (a.cand_id.values == b.cand_id.values).all(), "rows differ"
+    a["p"] = (a.p.values + b.p.values) / 2
+    a.to_parquet(config.FEAT_DIR / out_file, index=False)
+    print(f"blend {a_file} + {b_file} -> {out_file}: {len(a):,} rows")
+
+
 def assemble(iu_scores, iu_thr, fr_scores, fr_thr, out, iu_compete=1.0, fr_compete=1.0):
     """India/US from the full-test score file, France from the testfr one; ids mapped back to the test split."""
     from decide import compete, expected_f_select
@@ -257,7 +268,8 @@ def candidates_file(src="candidate_pairs.tsv", out="candidate_pairs_fa.tsv"):
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("cmd", choices=["split", "renorm", "pseudo", "pseudo2", "stage1", "ce_pairs", "ce_pairs_nn",
-                                    "ce_pairs_nn2", "assemble", "candidates"])
+                                    "ce_pairs_nn2", "blend", "assemble", "candidates"])
+    ap.add_argument("--blend", nargs=3, metavar=("A", "B", "OUT"), help="blend: two score files and the output")
     ap.add_argument("--iu-scores", default="test_scores2_v1cel12x.parquet")
     ap.add_argument("--iu-thr", type=float, default=0.7)
     ap.add_argument("--fr-scores", default="testfr_scores2_v1cex.parquet")
@@ -269,5 +281,6 @@ if __name__ == "__main__":
     a = ap.parse_args()
     {"split": make_split, "renorm": renorm, "pseudo": pseudo, "pseudo2": pseudo2, "stage1": stage1,
      "ce_pairs": ce_pairs, "ce_pairs_nn": ce_pairs_nn, "ce_pairs_nn2": lambda: ce_pairs_nn(pairs_name="pseudo2_pairs"),
+     "blend": lambda: blend(*a.blend),
      "assemble": lambda: assemble(a.iu_scores, a.iu_thr, a.fr_scores, a.fr_thr, a.out, a.iu_compete, a.fr_compete),
      "candidates": lambda: candidates_file(out=a.cand_out)}[a.cmd]()
