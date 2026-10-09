@@ -1,10 +1,12 @@
 # Amazon ML Challenge 2026: business entity resolution
 
+**Top 50 nationally in the Amazon ML Challenge 2026 (final private leaderboard). Public leaderboard score 0.989334.**
+
 Links Source-2 and Source-3 business records to deduplicated Source-1 reference entities. An entity can have many
 matching records or none; each record has at most one owner. The metric is macro F0.5 over Source-1 entities.
 
-**Result:** public leaderboard 0.989334 (final submission 16). The candidate set holds 5.81 candidates per Source-1
-entity, and every final match lies inside it.
+The final submission (16) uses a candidate set of 5.81 candidates per Source-1 entity, and every final match lies
+inside it.
 
 ## Approach
 
